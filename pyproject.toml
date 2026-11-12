@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "poda"
+version = "2.0.0"
+description = "Poda AI: removes dead code (commented-out, unused and unreachable code, unused libraries and dependencies) from legacy applications before documenting or migrating them."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Proprietary" }
+dependencies = [
+    "litellm==1.106.5",
+    "pydantic==2.14.3",
+    "typer==0.27.3",
+    "rich==15.0.0",
+    "tree-sitter==0.26.0",
+    "tree-sitter-java==0.23.5",
+    "tree-sitter-c-sharp==0.23.5",
+    "tree-sitter-python==0.25.0",
+    "tree-sitter-javascript==0.25.0",
+    "tree-sitter-typescript==0.23.2",
+]
+
+[project.scripts]
+poda = "poda.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["poda*"]
+
+[tool.setuptools.package-data]
+poda = ["prompts/*.md", "dashboard/*.html", "dashboard/assets/*"]

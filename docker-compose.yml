@@ -1,0 +1,79 @@
+# Poda AI: la herramienta y su propio SonarQube (con su propia base de datos).
+# Nada se comparte con otras herramientas: contenedores, red y volúmenes llevan el prefijo "poda".
+name: poda
+
+services:
+  poda:
+    build: .
+    container_name: poda-cli
+    tty: true
+    stdin_open: true
+    depends_on:
+      - sonarqube
+    environment:
+      # SonarQube de Poda AI (servicio de abajo): Poda AI lo prepara solo (contraseña y token).
+      - SONAR_HOST_URL=http://sonarqube:9000
+    volumes:
+      # El código, .env, .copilot/ y .poda-settings/ se leen del propio repositorio.
+      - .:/home/poda/workspace
+      # Aplicaciones legacy a limpiar (el original, que no se toca). Otra carpeta: TARGET_DIR=<ruta> en .env.
+      - ${TARGET_DIR:-./target}:/home/poda/workspace/target
+      # Resultado de cada limpieza en output/<aplicación>: copia limpia, informe y métricas.
+      # Otra carpeta: OUTPUT_DIR=<ruta> en .env.
+      - ${OUTPUT_DIR:-./output}:/home/poda/workspace/output
+    working_dir: /home/poda/workspace
+    # Dashboard: docker exec -it poda-cli poda dashboard  →  http://127.0.0.1:8770/
+    ports:
+      - "127.0.0.1:8770:8770"
+
+  # SonarQube de Poda AI: primera fase de cada limpieza. La primera vez tarda 1–3 minutos en arrancar.
+  # Versión fija: cambiarla puede cambiar las reglas que trae por defecto.
+  # Interfaz web (opcional, para ver las incidencias): http://127.0.0.1:9001
+  # (9001 y no 9000, para no chocar con otros SonarQube del mismo equipo).
+  sonarqube:
+    image: sonarqube:26.11.0.134175-community
+    container_name: poda-sonarqube
+    restart: unless-stopped
+    depends_on:
+      sonar-db:
+        condition: service_healthy
+    environment:
+      - SONAR_JDBC_URL=jdbc:postgresql://sonar-db:5432/poda_sonar
+      - SONAR_JDBC_USERNAME=poda_sonar
+      - SONAR_JDBC_PASSWORD=${PODA_SONAR_DB_PASSWORD:-poda-sonar}
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+      nproc: 4096
+    ports:
+      - "127.0.0.1:${PODA_SONAR_PORT:-9001}:9000"
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+
+  # Base de datos de SonarQube (la embebida solo sirve para pruebas). Sin puertos publicados:
+  # solo la ve SonarQube dentro de la red de Poda AI.
+  sonar-db:
+    image: postgres:16-alpine
+    container_name: poda-sonar-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=poda_sonar
+      - POSTGRES_USER=poda_sonar
+      - POSTGRES_PASSWORD=${PODA_SONAR_DB_PASSWORD:-poda-sonar}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U poda_sonar -d poda_sonar"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    volumes:
+      - sonar_db:/var/lib/postgresql/data
+
+volumes:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:
+  sonar_db:

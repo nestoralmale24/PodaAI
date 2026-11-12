@@ -1,0 +1,3 @@
+# La imagen solo necesita el lock de dependencias: el código se monta como volumen.
+*
+!requirements.lock

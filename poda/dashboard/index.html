@@ -1,0 +1,1130 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Poda AI</title>
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<script>
+  (() => {
+    let theme = null;
+    try { theme = localStorage.getItem('poda-theme') || localStorage.getItem('deadcode-theme'); } catch { /* storage blocked */ }
+    if (theme !== 'dark' && theme !== 'light') theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.dataset.theme = theme;
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- Sistema de diseño hiberus: tokens y componentes base (botones, hero, header, footer, inputs) -->
+<link rel="stylesheet" href="/assets/tokens.css">
+<style>
+  /* Solo lo propio del dashboard, construido sobre los tokens de hiberus. */
+  body { background: var(--hib-bg-alt); font-size: 16px; }
+  .site-header { justify-content: flex-start; }
+  .site-header { height: auto; padding-block: var(--sp-3); }
+  .brand { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 6px; text-decoration: none; }
+  .brand img { height: 28px; width: auto; display: block; }
+  .product { font-family: var(--font-head); font-weight: 700; font-size: 14px; line-height: 1; letter-spacing: .02em; color: var(--hib-blue); }
+  main.container { padding-block: var(--sp-7) var(--sp-8); }
+  .hero { padding: var(--sp-7) var(--sp-8); margin-bottom: var(--sp-7); }
+  .hero .eyebrow { color: #fff; opacity: .9; }
+  .hero h1 { font-size: clamp(32px, 4vw, 48px); margin-bottom: var(--sp-3); }
+  .hero .lead { max-width: 60ch; margin: 0; }
+  .section-head { margin-bottom: var(--sp-5); }
+  .section-head h2 { font-size: clamp(24px, 2.6vw, 32px); margin-bottom: var(--sp-2); }
+  .section-head p { color: var(--hib-navy-soft); margin: 0; max-width: 80ch; }
+  .block { margin-bottom: var(--sp-8); }
+  .providers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-5); }
+  @media (max-width: 900px) { .providers { grid-template-columns: 1fr; } .hero { padding: var(--sp-6) var(--sp-5); } }
+  .panel { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: var(--sp-5) var(--sp-6); transition: box-shadow .2s ease; }
+  .panel:hover { box-shadow: var(--shadow); }
+  .panel h3 { font-size: 20px; margin: 0 0 var(--sp-2); }
+  .pf-provider-status { display: block; font-size: 14px; font-weight: 600; margin-bottom: var(--sp-4); }
+  .pf-provider-status.ok { color: var(--hib-blue-deep); }
+  .pf-provider-status.warn { color: var(--hib-indigo); }
+  label { display: block; margin: 0 0 6px; font-family: var(--font-head); font-size: 13px; font-weight: 700; color: var(--hib-navy-soft); text-transform: uppercase; letter-spacing: .06em; }
+  .form-row { margin-bottom: var(--sp-4); }
+  select.field { appearance: none; padding-right: 40px; cursor: pointer; background: #fff url("/assets/chevron.svg") no-repeat right 14px center; }
+  select.field:disabled { background-color: var(--hib-bg-alt); color: var(--hib-navy-soft); cursor: default; }
+  .field.pf-invalid { border-color: var(--hib-indigo); box-shadow: 0 0 0 3px rgba(91, 83, 255, .15); }
+  .actions { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin-top: var(--sp-2); }
+  .btn { min-height: 44px; }
+  .btn:disabled { opacity: .45; cursor: default; transform: none; box-shadow: none; }
+  .btn-secondary:disabled:hover { background: transparent; color: var(--hib-blue); }
+  .btn-ghost { background: transparent; color: var(--hib-navy-soft); border-color: var(--hib-line); }
+  .btn-ghost:hover:not(:disabled) { border-color: var(--hib-navy); color: var(--hib-navy); }
+  .btn:focus-visible, .field:focus-visible, a:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 53, 243, .35); }
+  .pf-provider-msg, .pf-progress { min-height: 24px; margin-top: var(--sp-3); font-size: 14px; color: var(--hib-navy-soft); }
+  /* Message states (provider messages, save and run status) — scoped so they never style the phase list. */
+  :is(.pf-progress, .pf-provider-msg, .desc).running { color: var(--hib-navy-soft); }
+  :is(.pf-progress, .pf-provider-msg).done { color: var(--hib-blue-deep); }
+  :is(.pf-progress, .pf-provider-msg).done::before { content: "✔ "; }
+  :is(.pf-progress, .pf-provider-msg).warn { color: var(--hib-indigo); }
+  :is(.pf-progress, .pf-provider-msg, .desc).error { color: var(--hib-navy); font-weight: 600; background: var(--hib-lavender); border-radius: var(--radius-sm); padding: 8px 12px; }
+  :is(.pf-progress, .pf-provider-msg, .desc).error::before { content: "✖ "; }
+  .model-row { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, .8fr) minmax(0, 1.3fr); gap: var(--sp-4); align-items: center; padding: var(--sp-5) 0; border-top: 1px solid var(--hib-lavender); }
+  .model-row:first-child { border-top: 0; padding-top: 0; }
+  .model-row .name { font-family: var(--font-head); font-weight: 700; font-size: 18px; }
+  .model-row .desc { color: var(--hib-navy-soft); font-size: 14px; margin: 2px 0 0; }
+  @media (max-width: 760px) { .model-row { grid-template-columns: 1fr; } }
+  .badge { display: inline-block; margin-left: var(--sp-2); padding: 2px 10px; border-radius: var(--radius-pill); background: var(--hib-lavender); color: var(--hib-navy); font-size: 12px; font-weight: 700; vertical-align: middle; }
+  .effective { margin-top: var(--sp-5); padding: var(--sp-4) var(--sp-5); border-radius: var(--radius-sm); background: var(--hib-bg-alt); border-left: 4px solid var(--hib-blue); font-size: 15px; }
+  .effective code { font-size: 14px; color: var(--hib-blue-deep); }
+  .setup { margin-bottom: var(--sp-5); padding: var(--sp-4) var(--sp-5); border-radius: var(--radius); background: var(--hib-lavender); color: var(--hib-navy); border-left: 4px solid var(--hib-blue); }
+  .setup[hidden], #modelRunNote[hidden] { display: none; }
+  #modelRunNote { margin-top: var(--sp-3); }
+  .footer-bar { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-4); flex-wrap: wrap; margin-top: var(--sp-4); }
+  .footer-bar .pf-progress { margin-top: 0; }
+  .site-footer.light { background: transparent; color: var(--hib-navy-soft); padding-block: var(--sp-6); border-top: 1px solid var(--hib-lavender); }
+  .site-footer.light .container { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-4); flex-wrap: wrap; font-size: 14px; }
+  .site-footer.light img { height: 14px; width: auto; }
+  .tm-overlay { position: fixed; inset: 0; background: rgba(24, 35, 90, .55); display: flex; align-items: center; justify-content: center; padding: var(--sp-4); z-index: 100; }
+  .tm-dialog { width: min(480px, 100%); background: #fff; border-radius: var(--radius-lg); box-shadow: var(--shadow); padding: var(--sp-6); }
+  .tm-title { font-family: var(--font-head); font-size: 22px; font-weight: 700; margin-bottom: var(--sp-3); }
+  .tm-btns { display: flex; justify-content: flex-end; margin-top: var(--sp-5); }
+  .cl-steps { margin: 0 0 var(--sp-4); padding-left: 20px; color: var(--hib-navy-soft); }
+  .cl-link { display: block; margin-bottom: var(--sp-4); font-weight: 600; word-break: break-all; }
+  .pf-input-row { display: flex; gap: var(--sp-3); }
+  .cl-code { font: 700 22px/1.2 var(--font-head); letter-spacing: .14em; text-align: center; }
+  .run-head { display: flex; justify-content: space-between; align-items: flex-end; gap: var(--sp-4); flex-wrap: wrap; margin-bottom: var(--sp-4); }
+  .run-head code { color: var(--hib-navy-soft); font-size: 14px; word-break: break-all; }
+  .projects { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--sp-3); margin-bottom: var(--sp-5); }
+  .project { position: relative; display: block; text-transform: none; letter-spacing: 0; font-family: var(--font-body); font-size: 15px; font-weight: 500; color: var(--hib-navy);
+    border: 1px solid var(--hib-line); border-radius: var(--radius-sm); padding: var(--sp-3) var(--sp-4); cursor: pointer; background: #fff; transition: border-color .15s ease, box-shadow .15s ease; margin: 0; }
+  .project:hover { border-color: var(--hib-blue); }
+  .project input { position: absolute; opacity: 0; }
+  .project:has(input:checked) { border-color: var(--hib-blue); box-shadow: 0 0 0 3px rgba(0, 53, 243, .15); }
+  .project:has(input:focus-visible) { box-shadow: 0 0 0 3px rgba(0, 53, 243, .35); }
+  .project .pname { display: block; font-family: var(--font-head); font-weight: 700; font-size: 16px; word-break: break-all; }
+  .project .pmeta { display: block; color: var(--hib-navy-soft); font-size: 13px; margin-top: 2px; }
+  .options { display: grid; gap: var(--sp-2); margin-bottom: var(--sp-4); }
+  .check { display: flex; gap: var(--sp-3); align-items: flex-start; text-transform: none; letter-spacing: 0; font-family: var(--font-body); font-size: 15px; font-weight: 400; color: var(--hib-navy); margin: 0; cursor: pointer; }
+  .check input { width: 18px; height: 18px; margin-top: 3px; accent-color: var(--hib-blue); flex: none; }
+  .check input:disabled + span { color: var(--hib-navy-soft); }
+  .previous { display: grid; gap: var(--sp-2); padding: var(--sp-3) var(--sp-4); background: var(--hib-bg-alt); border-radius: var(--radius-sm); }
+  .previous[hidden], .live[hidden], #resultPanel[hidden], #runCancel[hidden] { display: none; }
+  .desc { color: var(--hib-navy-soft); font-size: 14px; margin: 0; }
+  .live { margin-top: var(--sp-5); }
+  .live-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--sp-4); flex-wrap: wrap; }
+  .run-status { font-family: var(--font-head); font-weight: 700; font-size: 14px; padding: 4px 12px; border-radius: var(--radius-pill); background: var(--hib-lavender); color: var(--hib-navy); }
+  .run-status.running { background: var(--hib-blue); color: #fff; }
+  .phases { list-style: none; margin: var(--sp-4) 0; padding: 0; display: grid; gap: var(--sp-2); }
+  .phase { display: grid; grid-template-columns: 24px minmax(0, 220px) minmax(0, 1fr); gap: var(--sp-3); align-items: center; font-size: 15px; }
+  .phase .ico { text-align: center; font-weight: 700; color: var(--hib-line); }
+  .phase.running .ico { color: var(--hib-blue); animation: spin 1s linear infinite; display: inline-block; }
+  .phase.done .ico { color: var(--hib-blue-deep); }
+  .phase.skipped { color: var(--hib-navy-soft); }
+  .phase .ttl { font-weight: 600; }
+  .phase.pending .ttl { color: var(--hib-navy-soft); font-weight: 500; }
+  .phase .det { color: var(--hib-navy-soft); font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar { height: 8px; background: var(--hib-lavender); border-radius: var(--radius-pill); overflow: hidden; }
+  .bar span { display: block; height: 100%; background: var(--hib-gradient); border-radius: var(--radius-pill); transition: width .25s ease; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .kpis { padding: var(--sp-5); gap: var(--sp-5) var(--sp-4); grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); border-radius: var(--radius); margin: var(--sp-4) 0; }
+  .kpi { min-width: 0; }
+  .kpi .num { font-size: clamp(24px, 2.6vw, 32px); overflow-wrap: anywhere; }
+  .kpi .label { font-size: 13px; }
+  .activity { display: grid; gap: 4px; margin-bottom: var(--sp-4); font-size: 14px; }
+  .activity div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .activity b { color: var(--hib-blue); font-weight: 700; }
+  .log { height: 280px; overflow: auto; background: var(--hib-navy); color: #fff; border-radius: var(--radius-sm); padding: var(--sp-3) var(--sp-4);
+    font: 13px/1.55 ui-monospace, "Cascadia Mono", Consolas, monospace; white-space: pre-wrap; word-break: break-word; }
+  .log .w { color: var(--hib-lavender); font-weight: 700; } .log .e { color: #fff; background: var(--hib-indigo); }
+  .log .ok { color: var(--hib-cyan); } .log .d { color: var(--hib-line); }
+  .tabs { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: var(--sp-4) 0; }
+  .tab { font-family: var(--font-head); font-weight: 600; font-size: 14px; border: 1px solid var(--hib-line); background: #fff; color: var(--hib-navy); border-radius: var(--radius-pill); padding: 8px 16px; cursor: pointer; min-height: 40px; }
+  .tab[aria-selected="true"] { background: var(--hib-navy); color: #fff; border-color: var(--hib-navy); }
+  .report { max-height: 640px; overflow: auto; border-top: 1px solid var(--hib-lavender); padding-top: var(--sp-4); font-size: 15px; }
+  .report h1 { font-size: 28px; } .report h2 { font-size: 22px; margin-top: var(--sp-5); } .report h3 { font-size: 18px; margin-top: var(--sp-4); }
+  .report table { border-collapse: collapse; width: 100%; margin: var(--sp-3) 0; font-size: 14px; }
+  .report th, .report td { border-bottom: 1px solid var(--hib-lavender); padding: 6px 10px; text-align: left; vertical-align: top; }
+  .report th { color: var(--hib-navy-soft); font-weight: 700; }
+  .report blockquote { margin: var(--sp-3) 0; padding: var(--sp-2) var(--sp-4); border-left: 4px solid var(--hib-blue); background: var(--hib-bg-alt); }
+  .report pre { white-space: pre-wrap; word-break: break-word; font: 13px/1.5 ui-monospace, Consolas, monospace; background: var(--hib-bg-alt); padding: var(--sp-3); border-radius: var(--radius-sm); }
+  .report code { font-size: 13px; color: var(--hib-blue-deep); }
+  /* ---------- Modo oscuro (paleta hiberus: marino de fondo, blanco/lavanda de texto, cian de acento) ---------- */
+  .theme-toggle { margin-left: auto; display: inline-flex; align-items: center; gap: var(--sp-2); min-height: 40px; padding: 8px 16px;
+    font-family: var(--font-head); font-weight: 600; font-size: 14px; border-radius: var(--radius-pill); cursor: pointer;
+    background: transparent; color: var(--hib-navy); border: 1px solid var(--hib-line); transition: border-color .2s ease, color .2s ease; }
+  .theme-toggle:hover { border-color: var(--hib-blue); color: var(--hib-blue); }
+  .theme-toggle:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 53, 243, .35); }
+  .theme-toggle svg { width: 18px; height: 18px; }
+  .logo-dark { display: none !important; }
+  :root[data-theme="dark"] .logo-light { display: none !important; }
+  :root[data-theme="dark"] .logo-dark { display: block !important; }
+  :root[data-theme="dark"] .ico-moon, :root:not([data-theme="dark"]) .ico-sun { display: none; }
+
+  :root[data-theme="dark"] { color-scheme: dark; }
+  :root[data-theme="dark"] body { background: #0E1538; color: #fff; }
+  :root[data-theme="dark"] :is(h1, h2, h3, h4) { color: #fff; }
+  :root[data-theme="dark"] a { color: var(--hib-cyan); }
+  :root[data-theme="dark"] .site-header { background: var(--hib-navy); box-shadow: 0 1px 0 rgba(221, 221, 254, .12); }
+  :root[data-theme="dark"] .product { color: var(--hib-cyan); }
+  :root[data-theme="dark"] .theme-toggle { color: #fff; border-color: var(--hib-navy-soft); }
+  :root[data-theme="dark"] .theme-toggle:hover { border-color: var(--hib-cyan); color: var(--hib-cyan); }
+  :root[data-theme="dark"] .eyebrow { color: var(--hib-cyan); }
+  :root[data-theme="dark"] .hero .eyebrow { color: #fff; }
+  :root[data-theme="dark"] :is(.section-head p, .desc, .model-row .desc, .project .pmeta, .phase .det, .phase.skipped, .phase.pending .ttl,
+    .run-head code, .cl-steps, .pf-provider-msg, .pf-progress, .report th, .check input:disabled + span) { color: var(--hib-lavender); }
+  :root[data-theme="dark"] label { color: var(--hib-lavender); }
+  :root[data-theme="dark"] :is(.panel, .tm-dialog) { background: var(--hib-navy); box-shadow: 0 0 0 1px rgba(221, 221, 254, .10); }
+  :root[data-theme="dark"] .panel:hover { box-shadow: 0 0 0 1px rgba(221, 221, 254, .18), 0 12px 32px rgba(0, 0, 0, .35); }
+  :root[data-theme="dark"] .field { background: #0E1538; color: #fff; border-color: var(--hib-navy-soft); }
+  :root[data-theme="dark"] .field::placeholder { color: rgba(221, 221, 254, .55); }
+  :root[data-theme="dark"] .field:focus { border-color: var(--hib-cyan); box-shadow: 0 0 0 3px rgba(0, 204, 226, .25); }
+  :root[data-theme="dark"] select.field { background: #0E1538 url("/assets/chevron-light.svg") no-repeat right 14px center; }
+  :root[data-theme="dark"] select.field:disabled { background-color: rgba(59, 71, 121, .35); color: var(--hib-lavender); }
+  :root[data-theme="dark"] .btn-secondary { color: #fff; border-color: #fff; }
+  :root[data-theme="dark"] .btn-secondary:hover:not(:disabled) { background: #fff; color: var(--hib-blue); }
+  :root[data-theme="dark"] .btn-secondary:disabled:hover { background: transparent; color: #fff; }
+  :root[data-theme="dark"] .btn-ghost { color: var(--hib-lavender); border-color: var(--hib-navy-soft); }
+  :root[data-theme="dark"] .btn-ghost:hover:not(:disabled) { color: #fff; border-color: var(--hib-lavender); }
+  :root[data-theme="dark"] :is(.btn, .field, a, .tab):focus-visible { box-shadow: 0 0 0 3px rgba(0, 204, 226, .45); }
+  :root[data-theme="dark"] .pf-provider-status.ok, :root[data-theme="dark"] :is(.pf-progress, .pf-provider-msg).done { color: var(--hib-cyan); }
+  :root[data-theme="dark"] .pf-provider-status.warn, :root[data-theme="dark"] :is(.pf-progress, .pf-provider-msg).warn { color: var(--hib-lavender); }
+  :root[data-theme="dark"] .field.pf-invalid { border-color: var(--hib-lavender); box-shadow: 0 0 0 3px rgba(221, 221, 254, .2); }
+  :root[data-theme="dark"] :is(.effective, .previous) { background: rgba(59, 71, 121, .35); }
+  :root[data-theme="dark"] .effective { border-left-color: var(--hib-cyan); }
+  :root[data-theme="dark"] .effective code, :root[data-theme="dark"] .report code { color: var(--hib-cyan); }
+  :root[data-theme="dark"] .model-row { border-top-color: rgba(221, 221, 254, .14); }
+  :root[data-theme="dark"] .check { color: #fff; }
+  :root[data-theme="dark"] .project { background: #0E1538; color: #fff; border-color: var(--hib-navy-soft); }
+  :root[data-theme="dark"] .project:hover { border-color: var(--hib-cyan); }
+  :root[data-theme="dark"] .project:has(input:checked) { border-color: var(--hib-cyan); box-shadow: 0 0 0 3px rgba(0, 204, 226, .25); }
+  :root[data-theme="dark"] .phase.done .ico { color: var(--hib-cyan); }
+  :root[data-theme="dark"] .phase .ico { color: var(--hib-navy-soft); }
+  :root[data-theme="dark"] .phase.running .ico { color: var(--hib-cyan); }
+  :root[data-theme="dark"] .bar { background: var(--hib-navy-soft); }
+  :root[data-theme="dark"] .kpi-band { background: var(--hib-blue-deep); }
+  :root[data-theme="dark"] .activity b { color: var(--hib-cyan); }
+  :root[data-theme="dark"] .log { background: #0A0F2A; box-shadow: inset 0 0 0 1px rgba(221, 221, 254, .10); }
+  :root[data-theme="dark"] .tab { background: transparent; color: #fff; border-color: var(--hib-navy-soft); }
+  :root[data-theme="dark"] .tab[aria-selected="true"] { background: #fff; color: var(--hib-navy); border-color: #fff; }
+  :root[data-theme="dark"] .report { border-top-color: rgba(221, 221, 254, .14); }
+  :root[data-theme="dark"] .report :is(th, td) { border-bottom-color: rgba(221, 221, 254, .14); }
+  :root[data-theme="dark"] .report :is(blockquote, pre) { background: rgba(59, 71, 121, .35); }
+  :root[data-theme="dark"] .report blockquote { border-left-color: var(--hib-cyan); }
+  :root[data-theme="dark"] .site-footer.light { color: var(--hib-lavender); border-top-color: rgba(221, 221, 254, .14); }
+  :root[data-theme="dark"] .tm-overlay { background: rgba(0, 0, 0, .6); }
+  /* ---------- Pasos en pestañas ---------- */
+  .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); margin-bottom: var(--sp-6); }
+  .step { display: flex; align-items: center; gap: var(--sp-3); text-align: left; padding: var(--sp-3) var(--sp-4); min-height: 64px;
+    background: #fff; border: 2px solid transparent; border-radius: var(--radius); box-shadow: var(--shadow-sm); cursor: pointer;
+    font-family: var(--font-head); color: var(--hib-navy); transition: border-color .2s ease, box-shadow .2s ease; }
+  .step:hover:not(:disabled) { box-shadow: var(--shadow); }
+  .step:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 53, 243, .35); }
+  .step .num { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 800;
+    background: var(--hib-lavender); color: var(--hib-navy); }
+  .step .txt { display: grid; gap: 2px; min-width: 0; }
+  .step .ttl { font-weight: 700; font-size: 16px; }
+  .step small { font-family: var(--font-body); font-size: 13px; color: var(--hib-navy-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .step[aria-selected="true"] { border-color: var(--hib-blue); }
+  .step[aria-selected="true"] .num { background: var(--hib-blue); color: #fff; }
+  .step.complete .num { background: var(--hib-blue-deep); color: #fff; }
+  .step:disabled { cursor: not-allowed; opacity: .55; box-shadow: none; }
+  [role="tabpanel"][hidden] { display: none; }
+  .step-nav { display: flex; justify-content: space-between; gap: var(--sp-3); flex-wrap: wrap; margin-top: var(--sp-5); }
+  .step-nav .btn-primary { margin-left: auto; }
+  @media (max-width: 760px) { .steps { grid-template-columns: 1fr; } }
+  :root[data-theme="dark"] .step { background: var(--hib-navy); color: #fff; box-shadow: 0 0 0 1px rgba(221, 221, 254, .10); }
+  :root[data-theme="dark"] .step small { color: var(--hib-lavender); }
+  :root[data-theme="dark"] .step[aria-selected="true"] { border-color: var(--hib-cyan); }
+  :root[data-theme="dark"] .step[aria-selected="true"] .num { background: var(--hib-cyan); color: var(--hib-navy); }
+  :root[data-theme="dark"] .step.complete .num { background: var(--hib-blue); color: #fff; }
+  :root[data-theme="dark"] .step:focus-visible { box-shadow: 0 0 0 3px rgba(0, 204, 226, .45); }
+  .sonar-card { display: flex; gap: var(--sp-3); align-items: flex-start; padding: var(--sp-3) var(--sp-4); margin-bottom: var(--sp-4);
+    border-radius: var(--radius-sm); background: var(--hib-bg-alt); border-left: 4px solid var(--hib-line); }
+  .sonar-card .sm { font-size: 13px; margin-top: 2px; }
+  .sonar-dot { flex: none; width: 12px; height: 12px; margin-top: 6px; border-radius: 50%; background: var(--hib-line); }
+  .sonar-card.ready { border-left-color: var(--hib-blue); } .sonar-card.ready .sonar-dot { background: var(--hib-blue); }
+  .sonar-card.starting .sonar-dot { background: var(--hib-indigo); animation: pulse 1.2s ease-in-out infinite; }
+  .sonar-card.starting { border-left-color: var(--hib-indigo); }
+  .sonar-card.error, .sonar-card.unavailable { border-left-color: var(--hib-navy); }
+  .sonar-card.error .sonar-dot, .sonar-card.unavailable .sonar-dot { background: var(--hib-navy); }
+  @keyframes pulse { 50% { opacity: .35; } }
+  :root[data-theme="dark"] .sonar-card { background: rgba(59, 71, 121, .35); }
+  :root[data-theme="dark"] .sonar-card.ready { border-left-color: var(--hib-cyan); }
+  :root[data-theme="dark"] .sonar-card.ready .sonar-dot { background: var(--hib-cyan); }
+  :root[data-theme="dark"] :is(.sonar-card.error, .sonar-card.unavailable) .sonar-dot { background: var(--hib-lavender); }
+</style>
+</head>
+<body>
+<header class="site-header">
+  <a class="brand" href="" aria-label="hiberus · Poda AI">
+    <img class="logo-light" src="/assets/hiberus-logo-navy.svg" alt="hiberus">
+    <img class="logo-dark" src="/assets/hiberus-logo-white.svg" alt="hiberus">
+    <span class="product">Poda AI</span>
+  </a>
+  <button class="theme-toggle" id="themeToggle" type="button" aria-pressed="false">
+    <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    <span id="themeLabel">Modo oscuro</span>
+  </button>
+</header>
+<main class="container">
+  <section class="hero" aria-labelledby="pageTitle">
+    <p class="eyebrow">Poda AI</p>
+    <h1 id="pageTitle">Limpieza de código muerto</h1>
+    <p class="lead">Conecta un proveedor de IA, elige el modelo y limpia tus aplicaciones legacy.</p>
+  </section>
+
+  <nav class="steps" role="tablist" aria-label="Pasos">
+    <button class="step" role="tab" id="tab-1" data-step="1" aria-controls="step-1" type="button">
+      <span class="num">1</span><span class="txt"><span class="ttl">Proveedores</span><small id="hint-1">Conecta al menos uno</small></span></button>
+    <button class="step" role="tab" id="tab-2" data-step="2" aria-controls="step-2" type="button">
+      <span class="num">2</span><span class="txt"><span class="ttl">Modelo</span><small id="hint-2">Elige el modelo</small></span></button>
+    <button class="step" role="tab" id="tab-3" data-step="3" aria-controls="step-3" type="button">
+      <span class="num">3</span><span class="txt"><span class="ttl">Limpieza</span><small id="hint-3">Elige la aplicación y lánzala</small></span></button>
+  </nav>
+
+  <section class="block" data-pf-section="providers" aria-labelledby="providersTitle" id="step-1" role="tabpanel" data-step="1">
+    <div class="section-head">
+      <p class="eyebrow">Paso 1</p>
+      <h2 id="providersTitle">Proveedores de IA</h2>
+      <p>Añade los proveedores que uses; después elige uno de ellos y un modelo que ofrezca. Las credenciales se guardan en este equipo, no se vuelven a mostrar y mandan sobre .env.</p>
+    </div>
+    <div class="setup lock-note" id="providersLock" role="status" hidden>
+      <strong>Hay una limpieza en marcha.</strong> Mientras dura, los proveedores no se pueden guardar, quitar, desconectar
+      ni actualizar. El modelo sí se puede cambiar en el paso 2: se aplicará a la próxima limpieza.
+    </div>
+    <div class="setup" id="setupBanner" role="status" hidden>
+      <strong>Para empezar, configura al menos un proveedor:</strong> LiteLLM (basta con la API key), GitHub Copilot o los dos.
+      Después elige el modelo más abajo. No hace falta tocar .env.
+    </div>
+    <div class="providers">
+      <article class="panel">
+        <h3>LiteLLM gateway</h3>
+        <span class="pf-provider-status" data-provider-status="litellm">Comprobando…</span>
+        <div class="form-row"><label for="litellmUrl">URL del gateway (opcional)</label><input class="field" type="text" id="litellmUrl" placeholder="https://litellm.tu-empresa" autocomplete="off" spellcheck="false"></div>
+        <div class="form-row"><label for="litellmKey">API key (obligatoria)</label><input class="field" type="password" id="litellmKey" placeholder="API key" autocomplete="new-password" required aria-required="true"></div>
+        <div class="actions">
+          <button class="btn btn-primary" id="litellmSave">Guardar</button>
+          <button class="btn btn-secondary" data-provider-refresh="litellm">Actualizar modelos</button>
+          <button class="btn btn-ghost" id="litellmClear">Quitar LiteLLM</button>
+        </div>
+        <div class="pf-provider-msg" data-provider-msg="litellm" role="status" aria-live="polite"></div>
+      </article>
+      <article class="panel">
+        <h3>GitHub Copilot</h3>
+        <span class="pf-provider-status" data-provider-status="copilot">Comprobando…</span>
+        <div class="form-row"><label for="copilotToken">Token de acceso</label><input class="field" type="password" id="copilotToken" placeholder="Token OAuth (gho_…), o usa Conectar con GitHub" autocomplete="off"></div>
+        <div class="actions">
+          <button class="btn btn-primary" id="copilotConnect">Conectar con GitHub</button>
+          <button class="btn btn-secondary" id="copilotTokenSave">Guardar token</button>
+          <button class="btn btn-secondary" data-provider-refresh="copilot">Actualizar modelos</button>
+          <button class="btn btn-ghost" id="copilotLogout">Desconectar</button>
+        </div>
+        <div class="pf-provider-msg" data-provider-msg="copilot" role="status" aria-live="polite"></div>
+      </article>
+    </div>
+    <div class="step-nav"><button class="btn btn-primary" type="button" data-go="2">Siguiente: elegir el modelo →</button></div>
+  </section>
+
+  <section class="block" data-pf-section="model" aria-labelledby="modelTitle" id="step-2" role="tabpanel" data-step="2" hidden>
+    <div class="section-head">
+      <p class="eyebrow">Paso 2</p>
+      <h2 id="modelTitle">Modelo de IA</h2>
+      <p>El modelo principal construye el contexto del proyecto, hace de agente y descubre código muerto; el de triaje (opcional, más barato) valida los hallazgos con su evidencia. Los cambios se aplican en la próxima limpieza.</p>
+    </div>
+    <article class="panel">
+      <div class="model-row">
+        <div><span class="name">Modelo principal</span><span class="badge">Agente</span>
+          <p class="desc">Contexto, verificación con herramientas y descubrimiento.</p></div>
+        <div><label for="mainProvider">Proveedor</label><select class="field" id="mainProvider"></select></div>
+        <div><label for="mainModel">Modelo</label><select class="field" id="mainModel"></select></div>
+      </div>
+      <div class="model-row">
+        <div><span class="name">Modelo de triaje</span><span class="badge">Snippet</span>
+          <p class="desc">Primera revisión de cada hallazgo, sin herramientas.</p></div>
+        <div><label for="triageProvider">Proveedor</label><select class="field" id="triageProvider" disabled></select></div>
+        <div><label for="triageModel">Modelo</label><select class="field" id="triageModel"></select></div>
+      </div>
+      <div class="effective" id="effective" role="status" aria-live="polite">Comprobando la configuración…</div>
+      <p class="desc" id="modelRunNote" hidden>Hay una limpieza en marcha: sigue con el modelo con el que empezó. Lo que cambies aquí se aplicará a la próxima.</p>
+      <div class="footer-bar">
+        <div id="saveStatus" class="pf-progress" role="status" aria-live="polite">Los cambios se guardan automáticamente.</div>
+        <button class="btn btn-ghost" id="selectionClear">Volver a la configuración de .env</button>
+      </div>
+    </article>
+    <div class="step-nav">
+      <button class="btn btn-ghost" type="button" data-go="1">← Proveedores</button>
+      <button class="btn btn-primary" type="button" data-go="3">Siguiente: limpiar una aplicación →</button>
+    </div>
+  </section>
+
+  <section class="block" data-pf-section="run" aria-labelledby="runTitle" id="step-3" role="tabpanel" data-step="3" hidden>
+    <div class="section-head">
+      <p class="eyebrow">Paso 3</p>
+      <h2 id="runTitle">Limpiar una aplicación</h2>
+      <p>Elige una aplicación de la carpeta de trabajo y lanza la limpieza. El original no se toca: Poda AI deja la copia limpia, el informe y las métricas aparte, en <code>output/&lt;aplicación&gt;</code>.</p>
+    </div>
+    <article class="panel">
+      <div class="run-head">
+        <div><label>Aplicaciones en</label><code id="targetPath">…</code></div>
+        <button class="btn btn-secondary" id="projectsRefresh">Actualizar lista</button>
+      </div>
+      <div class="sonar-card" id="sonarCard" role="status" aria-live="polite">
+        <span class="sonar-dot" aria-hidden="true"></span>
+        <div><strong>SonarQube</strong> <span class="desc" id="sonarText">Comprobando…</span>
+          <div class="desc sm">Primera fase de cada limpieza: detecta y resume; después la IA valida todo. Nada se elimina sin la IA.</div></div>
+      </div>
+      <div class="projects" id="projects" role="radiogroup" aria-label="Aplicación a limpiar"><p class="desc">Cargando…</p></div>
+
+      <div class="options">
+        <p class="desc">La limpieza es siempre completa: SonarQube, análisis de Poda AI, validación y descubrimiento con IA, y copia limpia. Solo se elimina lo que la IA confirma con confianza alta; el resto queda en el informe.</p>
+        <div class="previous" id="previousBox" hidden>
+          <span class="desc">Esta aplicación ya tiene una limpieza anterior:</span>
+          <label class="check"><input type="radio" name="previous" value="resume" checked> <span>Reutilizar las respuestas de la IA (más rápido y barato)</span></label>
+          <label class="check"><input type="radio" name="previous" value="force"> <span>Empezar de cero</span></label>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" id="runStart" disabled>Iniciar limpieza</button>
+        <button class="btn btn-ghost" id="runCancel" hidden>Detener</button>
+      </div>
+      <div class="pf-progress" id="runMsg" role="status" aria-live="polite"></div>
+      <div class="step-nav"><button class="btn btn-ghost" type="button" data-go="2">← Modelo</button></div>
+    </article>
+
+    <article class="panel live" id="livePanel" hidden aria-live="off">
+      <div class="live-head">
+        <h3 id="liveTitle">Ejecución</h3>
+        <span class="run-status" id="runStatus"></span>
+      </div>
+      <p class="desc" id="liveLlm"></p>
+      <ol class="phases" id="phases"></ol>
+      <div class="kpi-band kpis" id="kpis"></div>
+      <div class="activity" id="activity"></div>
+      <label>Registro</label>
+      <div class="log" id="log" tabindex="0" aria-label="Registro de la ejecución"></div>
+    </article>
+
+    <article class="panel" id="resultPanel" hidden>
+      <div class="live-head"><h3>Resultado</h3><span class="desc" id="resultPath"></span></div>
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" data-file="poda_report.md" aria-selected="true">Informe</button>
+        <button class="tab" role="tab" data-file="execution_metrics.md">Métricas y coste</button>
+        <button class="tab" role="tab" data-file="run.log">Registro completo</button>
+      </div>
+      <div class="report" id="report">Cargando…</div>
+    </article>
+  </section>
+</main>
+<footer class="site-footer light">
+  <div class="container">
+    <span>Poda AI</span>
+    <img src="/assets/hiberus-claim-wearedifferent.svg" alt="#WEAREDIFFERENT">
+  </div>
+</footer>
+<script>
+(() => {
+  'use strict';
+
+  // Modo claro / oscuro: se recuerda en este navegador.
+  const themeToggle = document.getElementById('themeToggle');
+  const paintTheme = () => {
+    const dark = document.documentElement.dataset.theme === 'dark';
+    themeToggle.setAttribute('aria-pressed', String(dark));
+    document.getElementById('themeLabel').textContent = dark ? 'Modo claro' : 'Modo oscuro';
+    themeToggle.title = dark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro';
+  };
+  themeToggle.addEventListener('click', () => {
+    const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem('poda-theme', next); } catch { /* storage blocked: only this visit */ }
+    paintTheme();
+  });
+  paintTheme();
+  const $ = (s) => document.querySelector(s);
+  const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  async function api(method, path, body) {
+    const res = await fetch(path, {
+      method, cache: 'no-store',
+      credentials: 'same-origin',
+      headers: body ? { 'Content-Type': 'application/json' } : {},
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    let data = {};
+    try { data = await res.json(); } catch { /* not JSON */ }
+    if (res.status === 409 && data && data.locked) applyProviderLock();
+    if (!res.ok && !(data && 'models' in data)) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  }
+
+  // Shared state: providers (status, models) and the saved selection.
+  const st = { status: {}, models: {}, catalog: {}, selection: { provider: '', model: '', triage_model: '' } };
+  const LABEL = { litellm: 'LiteLLM', copilot: 'GitHub Copilot' };
+  const SOURCE_NOTE = { live: '', cache: ' (en caché)', none: '' };
+
+  const say = (cls, text, pid) => {
+    const own = pid === 'run' ? $('#runMsg') : (pid ? document.querySelector(`[data-provider-msg="${pid}"]`) : null);
+    const el = own || $('#saveStatus');
+    el.className = `${own && pid !== 'run' ? 'pf-provider-msg' : 'pf-progress'} ${cls}`.trim();
+    el.textContent = text;
+  };
+
+  function renderProvider(pid) {
+    const s = st.status[pid];
+    const el = document.querySelector(`[data-provider-status="${pid}"]`);
+    if (!s || !el) return;
+    const cat = st.catalog[pid];
+    const models = cat && s.ready ? ` · ${cat.models.length} modelo(s)${SOURCE_NOTE[cat.source] ?? ''}` : '';
+    const origin = s.source === 'env' ? ' · desde .env' : (s.source === 'dashboard' ? ' · guardado aquí' : (s.source === 'cli' ? ' · sesión de poda login' : ''));
+    el.textContent = `${s.ready ? '✔' : '⚠'} ${s.message || (s.ready ? 'Listo' : 'Sin configurar')}${origin}${models}`;
+    el.className = `pf-provider-status ${s.ready ? 'ok' : 'warn'}`;
+    if (pid === 'litellm') {
+      const url = $('#litellmUrl'), key = $('#litellmKey');
+      if (!url.value && s.base_url && s.url_source !== 'default') url.value = s.base_url;
+      url.placeholder = s.default_url ? `${s.default_url} (por defecto)` : 'https://litellm.tu-empresa';
+      key.placeholder = s.api_key_set ? `API key ${s.key_source === 'env' ? 'de .env' : 'guardada'}: déjalo vacío para conservarla` : 'API key';
+      $('#litellmClear').disabled = !s.configured;
+    } else {
+      $('#copilotLogout').disabled = !s.configured;
+      $('#copilotConnect').textContent = s.configured ? 'Reconectar con GitHub' : 'Conectar con GitHub';
+    }
+    const refresh = document.querySelector(`button[data-provider-refresh="${pid}"]`);
+    if (refresh) refresh.disabled = !s.ready;
+    applyProviderLock();
+  }
+
+  // While a cleanup runs, its providers cannot change (the server refuses it too); the model can.
+  const PROVIDER_CONTROLS = ['#litellmUrl', '#litellmKey', '#litellmSave', '#litellmClear', '#copilotToken',
+    '#copilotConnect', '#copilotTokenSave', '#copilotLogout'];
+  function runActive() {
+    try { return !!(run.current && ['starting', 'running'].includes(run.current.status)); } catch { return false; }
+  }
+  function applyProviderLock() {
+    const locked = runActive();
+    $('#providersLock').hidden = !locked;
+    $('#modelRunNote').hidden = !locked;
+    if (!locked) return;
+    PROVIDER_CONTROLS.forEach(sel => { const el = $(sel); if (el) el.disabled = true; });
+    document.querySelectorAll('button[data-provider-refresh]').forEach(btn => { btn.disabled = true; });
+  }
+  function releaseProviderLock() {
+    ['#litellmUrl', '#litellmKey', '#litellmSave', '#copilotToken', '#copilotConnect', '#copilotTokenSave']
+      .forEach(sel => { const el = $(sel); if (el) el.disabled = false; });
+    Object.keys(LABEL).forEach(pid => renderProvider(pid));   // restores Quitar / Desconectar / Actualizar
+  }
+
+  function applyStatuses(list) {
+    (list || []).forEach(s => {
+      st.status[s.provider] = s;
+      if (!s.ready) { delete st.models[s.provider]; delete st.catalog[s.provider]; }
+      renderProvider(s.provider);
+    });
+    $('#setupBanner').hidden = Object.keys(LABEL).some(pid => st.status[pid]?.ready);
+    renderSelection();
+    if (typeof renderSteps === 'function') renderSteps();
+  }
+
+  async function loadModels(pid, refresh) {
+    const label = LABEL[pid] || pid;
+    say('running', `Listando los modelos de ${label}…`, pid);
+    try {
+      const cat = await api('GET', `/api/llm/providers/${pid}/models${refresh ? '?refresh=1' : ''}`);
+      st.catalog[pid] = cat;
+      st.models[pid] = (cat.models || []).map(m => ({ id: m.id, label: m.label || m.id }));
+      renderProvider(pid);
+      renderSelection();
+      say(cat.error ? 'warn' : 'done', cat.error ? `${label}: ${cat.error}` : `${label}: ${cat.models.length} modelo(s) disponibles.`, pid);
+    } catch (e) {
+      say('error', `No se pudieron listar los modelos de ${label}: ${e.message}`, pid);
+    }
+  }
+
+  // ── model rows (provider + model selects) ──
+  function renderSelection() {
+    const sel = st.selection;
+    const ready = Object.keys(LABEL).filter(pid => st.status[pid]?.ready);
+    const options = sel.provider && !ready.includes(sel.provider) ? [sel.provider, ...ready] : ready;
+    const psel = $('#mainProvider');
+    psel.innerHTML = options.length
+      ? (sel.provider ? '' : '<option value="" selected>— elige un proveedor —</option>')
+        + options.map(pid => `<option value="${esc(pid)}"${pid === sel.provider ? ' selected' : ''}>${esc(LABEL[pid] || pid)}${st.status[pid]?.ready ? '' : ' (sin conectar)'}</option>`).join('')
+      : '<option value="">(conecta un proveedor)</option>';
+    psel.classList.toggle('pf-invalid', !!sel.provider && !st.status[sel.provider]?.ready);
+    $('#triageProvider').innerHTML = `<option>${esc(LABEL[sel.provider] || '—')}</option>`;
+
+    const models = st.status[sel.provider]?.ready ? (st.models[sel.provider] || []) : [];
+    const ids = models.map(m => m.id);
+    const main = sel.model && ids.includes(sel.model) ? sel.model : '';
+    const msel = $('#mainModel');
+    msel.innerHTML = models.length
+      ? (main ? '' : `<option value="" selected>${sel.model ? `— ${esc(sel.model)} ya no está disponible —` : '— elige un modelo —'}</option>`)
+        + models.map(m => `<option value="${esc(m.id)}"${m.id === main ? ' selected' : ''}>${esc(m.label)}</option>`).join('')
+      : `<option value="">${sel.provider ? '(sin modelos: pulsa Actualizar modelos)' : '(elige primero un proveedor)'}</option>`;
+    msel.classList.toggle('pf-invalid', !!sel.provider && !main);
+
+    const triage = sel.triage_model && ids.includes(sel.triage_model) ? sel.triage_model : '';
+    const tsel = $('#triageModel');
+    tsel.innerHTML = models.length
+      ? `<option value=""${triage ? '' : ' selected'}>— el mismo que el principal —</option>`
+        + models.map(m => `<option value="${esc(m.id)}"${m.id === triage ? ' selected' : ''}>${esc(m.label)}</option>`).join('')
+      : '<option value="">—</option>';
+    tsel.disabled = !main;
+  }
+
+  function renderEffective(eff) {
+    const box = $('#effective');
+    if (!eff) return;
+    st.effectiveOk = !!eff.ok;
+    if (typeof updateRunControls === 'function') updateRunControls();
+    if (typeof renderSteps === 'function') renderSteps();
+    if (!eff.ok) { box.innerHTML = `<b>poda run</b> no puede arrancar con la configuración actual: ${esc(eff.error)}`; return; }
+    const origin = eff.source === 'dashboard' ? 'elegido aquí' : 'según .env';
+    box.innerHTML = `<b>poda run</b> usará ${esc(eff.display)} · modelo <code>${esc(eff.model)}</code>`
+      + (eff.triage_model && eff.triage_model !== eff.model ? ` · triaje <code>${esc(eff.triage_model)}</code>` : '')
+      + ` (${origin}).`;
+  }
+
+  let saving = false;
+  async function save(label, body, rollback) {
+    if (saving) { rollback(); return; }
+    saving = true;
+    const selects = ['#mainProvider', '#mainModel', '#triageModel'].map(s => $(s));
+    const before = selects.map(s => s.disabled);
+    selects.forEach(s => { s.disabled = true; });
+    say('running', `Guardando ${label}…`);
+    try {
+      const res = await api('POST', '/api/config/model', body);
+      st.selection = res.selection;
+      renderEffective(res.effective);
+      say('done', `${label[0].toUpperCase()}${label.slice(1)} guardado.`);
+    } catch (e) {
+      rollback();
+      say('error', `No se ha guardado ${label}: ${e.message}`);
+    } finally {
+      saving = false;
+      selects.forEach((s, i) => { s.disabled = before[i]; });
+      renderSelection();
+    }
+  }
+
+  $('#mainProvider').addEventListener('change', async (ev) => {
+    const pid = ev.target.value;
+    if (!pid) return;
+    const previous = { ...st.selection };
+    if (!st.models[pid]) await loadModels(pid, false);
+    // The previous provider's model is not valid here: take the first one this provider offers.
+    const model = (st.models[pid] || [])[0]?.id || '';
+    if (!model) { say('warn', `${LABEL[pid]} no ofrece modelos todavía: pulsa Actualizar modelos.`); st.selection = { provider: pid, model: '', triage_model: '' }; renderSelection(); st.selection = previous; return; }
+    st.selection = { provider: pid, model, triage_model: '' };
+    renderSelection();
+    void save('el proveedor', { provider: pid, model, triage_model: '' }, () => { st.selection = previous; });
+  });
+  $('#mainModel').addEventListener('change', (ev) => {
+    const value = ev.target.value;
+    if (!value) return;
+    const previous = { ...st.selection };
+    const triage = previous.triage_model === value ? '' : previous.triage_model;
+    st.selection = { ...previous, model: value, triage_model: triage };
+    void save('el modelo principal', { provider: previous.provider, model: value, triage_model: triage }, () => { st.selection = previous; });
+  });
+  $('#triageModel').addEventListener('change', (ev) => {
+    const previous = { ...st.selection };
+    st.selection = { ...previous, triage_model: ev.target.value };
+    void save('el modelo de triaje', { provider: previous.provider, model: previous.model, triage_model: ev.target.value }, () => { st.selection = previous; });
+  });
+  $('#selectionClear').addEventListener('click', () => {
+    if (!confirm('¿Quitar el modelo elegido aquí?\n\nPoda AI volverá a usar el proveedor y el modelo de .env.')) return;
+    const previous = { ...st.selection };
+    void save('la vuelta a .env', { clear: true }, () => { st.selection = previous; });
+  });
+
+  // ── providers ──
+  const busy = (btn, pid, action) => {
+    if (btn) btn.disabled = true;
+    action().finally(() => { if (btn) btn.disabled = false; renderProvider(pid); });
+  };
+  async function loadStatuses() {
+    try { applyStatuses((await api('GET', '/api/llm/providers')).providers); }
+    catch (e) { say('error', `No se pudo leer el estado de los proveedores: ${e.message}`); }
+  }
+
+  $('#litellmSave').addEventListener('click', (ev) => busy(ev.currentTarget, 'litellm', async () => {
+    const url = $('#litellmUrl'), key = $('#litellmKey');
+    if (!key.value.trim() && !st.status.litellm?.api_key_set) {
+      say('warn', 'La API key es obligatoria: pégala para conectar LiteLLM.', 'litellm');
+      key.focus();
+      return;
+    }
+    say('running', 'Guardando el gateway LiteLLM…', 'litellm');
+    try {
+      applyStatuses((await api('POST', '/api/llm/litellm', { base_url: url.value.trim(), api_key: key.value.trim() })).providers);
+      key.value = '';
+    } catch (e) { say('error', `No se ha guardado el gateway: ${e.message}`, 'litellm'); return; }
+    await loadModels('litellm', true);
+    await loadSelection();
+  }));
+  $('#litellmClear').addEventListener('click', (ev) => {
+    if (!confirm('¿Quitar LiteLLM?\n\nSe borran la URL y la API key guardadas aquí, se deja de usar la de .env y, si el modelo elegido era de LiteLLM, también se quita. Para volver a usarlo tendrás que pegar una API key.')) return;
+    busy(ev.currentTarget, 'litellm', async () => {
+      try {
+        delete st.models.litellm; delete st.catalog.litellm;
+        applyStatuses((await api('POST', '/api/llm/litellm', { clear: true })).providers);
+        $('#litellmUrl').value = st.status.litellm?.base_url || '';
+        say('done', 'LiteLLM quitado.', 'litellm');
+        if (st.status.litellm?.ready) await loadModels('litellm', true);
+        await loadSelection();
+      } catch (e) { say('error', `No se pudieron borrar los valores: ${e.message}`, 'litellm'); }
+    });
+  });
+  document.querySelectorAll('button[data-provider-refresh]').forEach(btn => {
+    const pid = btn.dataset.providerRefresh;
+    btn.addEventListener('click', () => busy(btn, pid, () => loadModels(pid, true)));
+  });
+  $('#copilotConnect').addEventListener('click', () => openCopilotLogin(async () => {
+    await loadStatuses(); await loadModels('copilot', true); await loadSelection();
+  }));
+  $('#copilotTokenSave').addEventListener('click', (ev) => busy(ev.currentTarget, 'copilot', async () => {
+    const input = $('#copilotToken');
+    const token = input.value.trim();
+    if (!token) { say('warn', 'Pega primero un token.', 'copilot'); return; }
+    say('running', 'Guardando el token de GitHub Copilot…', 'copilot');
+    try { applyStatuses((await api('POST', '/api/llm/copilot/token', { token })).providers); input.value = ''; }
+    catch (e) { say('error', `No se ha guardado el token: ${e.message}`, 'copilot'); return; }
+    await loadModels('copilot', true);
+    await loadSelection();
+  }));
+  $('#copilotLogout').addEventListener('click', (ev) => {
+    if (!confirm('¿Desconectar GitHub Copilot?\n\nSe borra la sesión de GitHub guardada en este equipo, se detiene el proxy local y, si el modelo elegido era de Copilot, también se quita.')) return;
+    busy(ev.currentTarget, 'copilot', async () => {
+      try {
+        delete st.models.copilot; delete st.catalog.copilot;
+        applyStatuses((await api('POST', '/api/llm/copilot/logout', {})).providers);
+        say('done', 'GitHub Copilot desconectado.', 'copilot');
+        await loadSelection();
+      } catch (e) { say('error', `No se pudo desconectar: ${e.message}`, 'copilot'); }
+    });
+  });
+
+  // ── GitHub Copilot sign-in (device flow): the device code never reaches the browser ──
+  function openCopilotLogin(onConnected) {
+    document.getElementById('copilotLoginModal')?.remove();
+    const overlay = document.createElement('div');
+    overlay.id = 'copilotLoginModal';
+    overlay.className = 'tm-overlay';
+    overlay.innerHTML = `<div class="tm-dialog" role="dialog" aria-modal="true" aria-label="Conectar GitHub Copilot">
+      <div class="tm-title">Conectar GitHub Copilot</div>
+      <ol class="cl-steps"><li>Abre la página de GitHub de abajo.</li><li>Introduce el código.</li><li>Autoriza el acceso. Esta ventana continúa sola.</li></ol>
+      <a id="clUri" class="cl-link" href="https://github.com/login/device" target="_blank" rel="noopener noreferrer">Pidiendo un código a GitHub…</a>
+      <div class="pf-input-row"><input id="clCode" class="field cl-code" type="text" readonly aria-label="Código para GitHub"><button class="btn btn-secondary" id="clCopy" disabled>Copiar</button></div>
+      <div class="pf-progress" id="clStatus" role="status" aria-live="polite">Empezando…</div>
+      <div class="tm-btns"><button class="btn btn-ghost" id="clClose">Cancelar</button></div>
+    </div>`;
+    document.body.appendChild(overlay);
+    let closed = false, timer = null;
+    const status = overlay.querySelector('#clStatus');
+    const closeBtn = overlay.querySelector('#clClose');
+    const close = () => { closed = true; if (timer) clearTimeout(timer); overlay.remove(); };
+    const fail = (msg) => { status.className = 'pf-progress error'; status.textContent = msg; closeBtn.textContent = 'Cerrar'; };
+    closeBtn.addEventListener('click', close);
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+    overlay.querySelector('#clCopy').addEventListener('click', () => {
+      const code = overlay.querySelector('#clCode').value;
+      if (code) navigator.clipboard?.writeText(code).then(() => { status.textContent = 'Código copiado.'; });
+    });
+    (async () => {
+      let flow;
+      try { flow = await api('POST', '/api/llm/copilot/login', {}); }
+      catch (e) { fail(`No se pudo iniciar la conexión: ${e.message}`); return; }
+      if (closed) return;
+      const link = overlay.querySelector('#clUri');
+      link.href = flow.verification_uri; link.textContent = flow.verification_uri;
+      overlay.querySelector('#clCode').value = flow.user_code || '';
+      overlay.querySelector('#clCopy').disabled = false;
+      status.className = 'pf-progress running';
+      status.textContent = 'Esperando la autorización en GitHub…';
+      const deadline = Date.now() + (flow.expires_in || 900) * 1000;
+      let interval = Math.max(1, flow.interval || 5), errors = 0;
+      const poll = async () => {
+        if (closed) return;
+        if (Date.now() > deadline) { fail('El código ha caducado. Cierra y vuelve a empezar.'); return; }
+        try {
+          const res = await api('POST', '/api/llm/copilot/login/poll', { flow_id: flow.flow_id });
+          if (closed) return;
+          errors = 0;
+          interval = Math.max(1, res.interval || interval);
+          if (res.status === 'authorized') {
+            status.className = 'pf-progress done';
+            status.textContent = res.message || 'GitHub Copilot conectado.';
+            closeBtn.textContent = 'Cerrar';
+            onConnected();
+            timer = setTimeout(close, 1500);
+            return;
+          }
+          if (res.status !== 'pending') { fail(res.message || `Conexión terminada: ${res.status}`); return; }
+          const left = Math.max(0, Math.floor((deadline - Date.now()) / 1000));
+          status.textContent = `Esperando la autorización en GitHub… (código válido ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')})`;
+        } catch (e) {
+          if (closed) return;
+          if (++errors >= 3) { fail(`No se pudo completar la conexión: ${e.message}`); return; }
+          status.textContent = `Esperando… (${e.message})`;
+        }
+        timer = setTimeout(poll, interval * 1000);
+      };
+      timer = setTimeout(poll, interval * 1000);
+    })();
+  }
+
+  // ── Paso 3: aplicaciones de target/ y ejecución con progreso en vivo ──
+  const PHASES = ['Inventario', 'SonarQube', 'Análisis estático', 'Contexto del proyecto (IA)', 'Verificación (IA)',
+    'Descubrimiento (IA)', 'Aplicación de cambios', 'Informes'];
+  const PROGRESS_KEY = { 3: 'static', 5: 'verify', 6: 'discover', 7: 'apply' };
+  const LOG_KINDS = new Set(['header', 'info', 'detail', 'warn', 'error', 'phase_start', 'phase_end', 'phase_skip',
+    'finding_summary', 'verdicts', 'removed', 'trimmed', 'tool_call', 'done']);
+  const run = { projects: [], selected: '', current: null, since: 0, timer: null, live: null, fileTab: 'poda_report.md' };
+  const fmtInt = (n) => Number(n || 0).toLocaleString('es-ES');
+  // Big counters fit their tile: 26.058 -> "26,1 k", 1.816.031 -> "1,8 M" (the exact figure goes in the tooltip).
+  const fmtCompact = (n) => {
+    n = Number(n || 0);
+    if (n < 10000) return fmtInt(n);
+    const [v, unit] = n >= 1e6 ? [n / 1e6, ' M'] : [n / 1e3, ' k'];
+    return v.toLocaleString('es-ES', { maximumFractionDigits: v < 100 ? 1 : 0 }) + unit;
+  };
+  const fmtCost = (usd, digits) => `${Number(usd).toLocaleString('es-ES', { minimumFractionDigits: 2,
+    maximumFractionDigits: digits ?? (usd < 1 ? 4 : 2) })} $`;
+  const fmtSecs = (s) => { s = Math.max(0, Math.round(s)); return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, '0')} s`; };
+
+  function freshLive() {
+    return { phases: PHASES.map(t => ({ title: t, status: 'pending', summary: '', seconds: null })), progress: {},
+      activities: new Map(), counters: { candidates: 0, verdicts: 0, files: 0, lines: 0, tokensIn: 0, tokensOut: 0, cost: null, costEstimated: false } };
+  }
+
+  async function loadProjects() {
+    try {
+      const res = await api('GET', '/api/projects');
+      run.projects = res.projects || [];
+      $('#targetPath').textContent = res.target || '';
+      renderProjects();
+    } catch (e) { $('#projects').innerHTML = `<p class="desc error">No se pudo leer la carpeta de aplicaciones: ${esc(e.message)}</p>`; }
+  }
+
+  function projectMeta(p) {
+    const r = p.last_run;
+    if (!r) return p.has_output ? 'Limpieza anterior sin terminar' : 'Sin limpiar todavía';
+    const parts = [`Última: ${r.finished_at ? r.finished_at.replace('T', ' ').slice(0, 16) : '—'}`];
+    if (r.dry_run) parts.push('simulación');
+    else parts.push(`${fmtInt(r.files_deleted)} ficheros · ${fmtInt(r.lines_removed)} líneas`);
+    if (r.loc_reduced_pct) parts.push(`−${r.loc_reduced_pct} % LOC`);
+    return parts.join(' · ');
+  }
+
+  function renderProjects() {
+    const box = $('#projects');
+    if (!run.projects.length) {
+      box.innerHTML = '<p class="desc">No hay aplicaciones en la carpeta de trabajo. Copia aquí la carpeta de cada aplicación legacy y pulsa «Actualizar lista».</p>';
+    } else {
+      if (!run.projects.some(p => p.name === run.selected)) run.selected = run.projects.length === 1 ? run.projects[0].name : '';
+      box.innerHTML = run.projects.map(p => `<label class="project">
+          <input type="radio" name="project" value="${esc(p.name)}"${p.name === run.selected ? ' checked' : ''}>
+          <span class="pname">${esc(p.name)}</span><span class="pmeta">${esc(projectMeta(p))}</span></label>`).join('');
+      box.querySelectorAll('input[name=project]').forEach(input => input.addEventListener('change', () => {
+        run.selected = input.value; updateRunControls();
+      }));
+    }
+    updateRunControls();
+  }
+
+  function updateRunControls() {
+    const busy = run.current && ['starting', 'running'].includes(run.current.status);
+    const project = run.projects.find(p => p.name === run.selected);
+    $('#previousBox').hidden = !(project && project.has_output);
+    document.querySelectorAll('input[name=previous]').forEach(input => { input.disabled = !!busy; });
+    const start = $('#runStart');
+    const sonarReady = st.sonar && st.sonar.state === 'ready';
+    start.disabled = !!busy || !project || !st.effectiveOk || !sonarReady;
+    $('#runCancel').hidden = !busy;
+    if (!busy) {
+      const msg = !st.effectiveOk ? 'Antes de lanzar, conecta al menos un proveedor (paso 1) y elige el modelo (paso 2).'
+        : (!sonarReady ? 'Esperando a SonarQube: la limpieza empieza por su análisis.'
+        : (!project ? (run.projects.length > 1 ? 'Elige qué aplicación quieres limpiar.' : 'Elige una aplicación.') : ''));
+      if (msg) say('warn', msg, 'run');
+      else if (!$('#runMsg').classList.contains('done') && !$('#runMsg').classList.contains('error')) say('', `Listo para limpiar ${run.selected}.`, 'run');
+    }
+  }
+  $('#projectsRefresh').addEventListener('click', loadProjects);
+
+  $('#runStart').addEventListener('click', async () => {
+    if (!run.selected) return;
+    const options = { previous: (document.querySelector('input[name=previous]:checked') || {}).value || 'resume' };
+    $('#runStart').disabled = true;
+    say('running', `Arrancando la limpieza de ${run.selected}…`, 'run');
+    try {
+      const res = await api('POST', '/api/runs', { project: run.selected, options });
+      startFollowing(res.run);
+      say('running', `Limpiando ${res.run.project}…`, 'run');
+    } catch (e) {
+      say('error', `No se pudo iniciar: ${e.message}`, 'run');
+      updateRunControls();
+    }
+  });
+  $('#runCancel').addEventListener('click', async () => {
+    if (!confirm('¿Detener la limpieza? Para en cuanto acabe la llamada a la IA en curso; lo que aún no se haya aplicado no se escribe.')) return;
+    try { await api('POST', '/api/runs/cancel', {}); say('running', 'Deteniendo…', 'run'); }
+    catch (e) { say('error', `No se pudo detener: ${e.message}`, 'run'); }
+  });
+
+  function startFollowing(r) {
+    run.current = r; run.since = 0; run.live = freshLive();
+    $('#log').textContent = '';
+    $('#livePanel').hidden = false;
+    $('#resultPanel').hidden = true;
+    $('#liveTitle').textContent = `Limpieza de ${r.project}`;
+    $('#liveLlm').textContent = `Modelo: ${r.llm}${r.options.dry_run ? ' · simulación' : ''}`;
+    renderLive();
+    updateRunControls();
+    renderSteps();
+    applyProviderLock();
+    if (run.timer) clearTimeout(run.timer);
+    poll();
+  }
+
+  async function poll() {
+    if (!run.current) return;
+    try {
+      const res = await api('GET', `/api/runs/${encodeURIComponent(run.current.id)}/events?since=${run.since}`);
+      run.current = res.run;
+      res.events.forEach(applyEvent);
+      run.since += res.events.length;
+      renderLive();
+      const active = ['starting', 'running'].includes(res.run.status);
+      if (active || res.events.length >= 2000) { run.timer = setTimeout(poll, active ? 800 : 50); return; }
+      finished();
+    } catch (e) {
+      say('warn', `Sin respuesta del servidor (${e.message}); reintentando…`, 'run');
+      run.timer = setTimeout(poll, 2500);
+    }
+  }
+
+  function applyEvent(ev) {
+    const L = run.live, d = ev.data || {};
+    switch (ev.kind) {
+      case 'phase_start': L.phases[d.index - 1].status = 'running'; L.activities.clear(); break;
+      case 'phase_end': Object.assign(L.phases[d.index - 1], { status: 'done', summary: d.summary || '', seconds: d.seconds }); break;
+      case 'phase_skip': Object.assign(L.phases[d.index - 1], { status: 'skipped', summary: ev.message }); break;
+      case 'progress': L.progress[d.phase] = [d.done || 0, Math.max(1, d.total || 1)]; break;
+      case 'activity': case 'tool_call': case 'llm_call': {
+        const label = d.label || '·';
+        L.activities.delete(label);
+        L.activities.set(label, ev.message || `consulta a ${d.model || 'el modelo'}`);
+        while (L.activities.size > 5) L.activities.delete(L.activities.keys().next().value);
+        break;
+      }
+      case 'usage': L.counters.tokensIn = d.prompt_tokens || 0; L.counters.tokensOut = d.completion_tokens || 0; L.counters.cost = d.cost; L.counters.costEstimated ||= !!d.estimated; break;
+      case 'finding_summary': L.counters.candidates += d.count || 0; break;
+      case 'verdicts': L.counters.verdicts += (d.remove || 0) + (d.keep || 0) + (d.unsure || 0); break;
+      case 'removed': L.counters.files += d.files || 1; break;
+      case 'trimmed': L.counters.lines += d.lines || 0; break;
+    }
+    if (LOG_KINDS.has(ev.kind) && ev.line) appendLog(ev);
+  }
+
+  function appendLog(ev) {
+    const log = $('#log');
+    const stick = log.scrollTop + log.clientHeight >= log.scrollHeight - 30;
+    const line = document.createElement('div');
+    const time = new Date(ev.ts * 1000).toLocaleTimeString('es-ES');
+    line.className = { warn: 'w', error: 'e', phase_end: 'ok', done: 'ok', detail: 'd', tool_call: 'd' }[ev.kind] || '';
+    line.textContent = `${time}  ${ev.line.replace(/\n/g, '\n          ')}`;
+    log.appendChild(line);
+    while (log.childElementCount > 1500) log.firstElementChild.remove();
+    if (stick) log.scrollTop = log.scrollHeight;
+  }
+
+  function renderLive() {
+    const L = run.live, r = run.current;
+    if (!L || !r) return;
+    $('#phases').innerHTML = L.phases.map((p, i) => {
+      const icon = { pending: '·', running: '◐', done: '✔', skipped: '⤼' }[p.status];
+      const prog = L.progress[PROGRESS_KEY[i + 1]];
+      const detail = p.status === 'running' && prog
+        ? `<div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="${prog[1]}" aria-valuenow="${prog[0]}"><span style="width:${Math.round(100 * prog[0] / prog[1])}%"></span></div>`
+        : `<span class="det" title="${esc(p.summary)}">${esc([p.summary, p.seconds ? fmtSecs(p.seconds) : ''].filter(Boolean).join(' · '))}</span>`;
+      return `<li class="phase ${p.status}"><span class="ico" aria-hidden="true">${icon}</span><span class="ttl">${esc(p.title)}</span>${detail}</li>`;
+    }).join('');
+    const c = L.counters;
+    const elapsed = ((r.finished || Date.now() / 1000) - r.started);
+    $('#kpis').innerHTML = [
+      [fmtCompact(c.candidates), 'hallazgos', fmtInt(c.candidates)],
+      [fmtCompact(c.verdicts), 'veredictos de la IA', fmtInt(c.verdicts)],
+      [fmtCompact(c.files), 'ficheros eliminados', fmtInt(c.files)],
+      [fmtCompact(c.lines), 'líneas quitadas', fmtInt(c.lines)],
+      [fmtCompact(c.tokensIn), 'tokens de entrada', fmtInt(c.tokensIn)],
+      [fmtCompact(c.tokensOut), 'tokens de salida', fmtInt(c.tokensOut)],
+      [c.cost == null ? 'n/d' : fmtCost(c.cost), c.costEstimated ? 'coste estimado (Copilot)' : 'coste',
+        c.cost == null ? '' : fmtCost(c.cost, 4) + (c.costEstimated ? ' · tarifas por token publicadas por GitHub' : '')],
+      [fmtSecs(elapsed), 'tiempo'],
+    ].map(([n, l, exact]) => `<div class="kpi"${exact ? ` title="${esc(exact)}"` : ''}><div class="num">${esc(n)}</div><div class="label">${esc(l)}</div></div>`).join('');
+    const acts = [...L.activities.entries()].slice(-4);
+    $('#activity').innerHTML = acts.map(([label, text]) => `<div><b>[${esc(label)}]</b> ${esc(text)}</div>`).join('');
+    const status = $('#runStatus');
+    status.textContent = { starting: 'Arrancando', running: 'En curso', done: 'Terminada', failed: 'Con error', cancelled: 'Detenida' }[r.status] || r.status;
+    status.className = `run-status ${['starting', 'running'].includes(r.status) ? 'running' : ''}`;
+  }
+
+  function finished() {
+    const r = run.current;
+    run.timer = null;
+    updateRunControls();
+    renderSteps();
+    releaseProviderLock();
+    if (r.status === 'done') {
+      say(r.error ? 'warn' : 'done', r.error || `Limpieza de ${r.project} terminada.`, 'run');
+      $('#resultPanel').hidden = false;
+      $('#resultPath').textContent = r.out_dir;
+      showFile(run.fileTab);
+    } else {
+      say('error', r.error || `La ejecución terminó con estado ${r.status}.`, 'run');
+    }
+    loadProjects();
+  }
+
+  document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => showFile(tab.dataset.file)));
+  async function showFile(name) {
+    run.fileTab = name;
+    document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.file === name)));
+    const box = $('#report');
+    box.textContent = 'Cargando…';
+    const project = run.current?.project || run.selected;
+    try {
+      const res = await api('GET', `/api/projects/${encodeURIComponent(project)}/files/${encodeURIComponent(name)}`);
+      box.innerHTML = name.endsWith('.md') ? markdown(res.content) : `<pre>${esc(res.content)}</pre>`;
+      if (res.truncated) box.insertAdjacentHTML('beforeend', `<p class="desc">Recortado: el fichero completo está en ${esc(res.path)}</p>`);
+    } catch (e) { box.innerHTML = `<p class="desc error">${esc(e.message)}</p>`; }
+  }
+
+  // Markdown mínimo para los informes de Poda AI (títulos, tablas, listas, citas, código).
+  function inline(text) {
+    return esc(text).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  }
+  function markdown(src) {
+    const lines = src.replace(/\r/g, '').split('\n');
+    const out = [];
+    let i = 0;
+    while (i < lines.length) {
+      const line = lines[i];
+      if (/^```/.test(line)) {
+        const buf = []; i++;
+        while (i < lines.length && !/^```/.test(lines[i])) buf.push(lines[i++]);
+        out.push(`<pre>${esc(buf.join('\n'))}</pre>`); i++; continue;
+      }
+      const h = /^(#{1,4})\s+(.*)$/.exec(line);
+      if (h) { out.push(`<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`); i++; continue; }
+      if (/^\|/.test(line)) {
+        const rows = [];
+        while (i < lines.length && /^\|/.test(lines[i])) rows.push(lines[i++]);
+        const cells = (r) => r.replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+        const body = rows.filter(r => !/^\|[\s:|-]+\|$/.test(r));
+        const [head, ...rest] = body;
+        out.push('<table><thead><tr>' + cells(head).map(c => `<th>${inline(c)}</th>`).join('') + '</tr></thead><tbody>'
+          + rest.map(r => '<tr>' + cells(r).map(c => `<td>${inline(c)}</td>`).join('') + '</tr>').join('') + '</tbody></table>');
+        continue;
+      }
+      if (/^\s*[-*]\s+/.test(line)) {
+        const items = [];
+        while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) items.push(lines[i++].replace(/^\s*[-*]\s+/, ''));
+        out.push('<ul>' + items.map(t => `<li>${inline(t)}</li>`).join('') + '</ul>');
+        continue;
+      }
+      if (/^>\s?/.test(line)) { out.push(`<blockquote>${inline(line.replace(/^>\s?/, ''))}</blockquote>`); i++; continue; }
+      if (line.trim()) out.push(`<p>${inline(line)}</p>`);
+      i++;
+    }
+    return out.join('\n');
+  }
+
+  // ── SonarQube: estado (se prepara solo) y espera mientras arranca ──
+  let sonarTimer = null;
+  async function loadSonar() {
+    clearTimeout(sonarTimer);
+    try { st.sonar = (await api('GET', '/api/sonar/status')).sonar; }
+    catch (e) { st.sonar = { state: 'error', message: e.message }; }
+    const s = st.sonar;
+    const card = $('#sonarCard');
+    card.className = `sonar-card ${s.state}`;
+    const label = { ready: '✔ Listo', starting: '⏳ Arrancando', error: '✖ Error', unavailable: '✖ No disponible' }[s.state] || s.state;
+    $('#sonarText').textContent = `${label}${s.version ? ` (versión ${s.version})` : ''} · ${s.message || ''}`;
+    updateRunControls();
+    if (s.state !== 'ready') sonarTimer = setTimeout(loadSonar, s.state === 'starting' ? 5000 : 15000);
+  }
+
+  async function resumeRun() {
+    try {
+      const res = await api('GET', '/api/runs/current');
+      if (res.run) { run.selected = res.run.project; renderProjects(); startFollowing(res.run); }
+    } catch { /* nothing running */ }
+  }
+
+  // ── Pestañas por paso: no se puede avanzar sin completar el anterior ──
+  const steps = { current: 1 };
+  const anyProvider = () => Object.keys(LABEL).some(pid => st.status[pid]?.ready);
+  const stepAllowed = (n) => n === 1 || (n === 2 && anyProvider()) || (n === 3 && anyProvider() && !!st.effectiveOk);
+  function renderSteps() {
+    const running = run.current && ['starting', 'running'].includes(run.current.status);
+    if (!stepAllowed(steps.current) && !(steps.current === 3 && running)) steps.current = [3, 2, 1].find(stepAllowed);
+    const done = { 1: anyProvider(), 2: !!st.effectiveOk, 3: false };
+    const hints = {
+      1: done[1] ? Object.keys(LABEL).filter(pid => st.status[pid]?.ready).map(pid => LABEL[pid]).join(' + ') : 'Conecta al menos uno',
+      2: !done[1] ? 'Primero conecta un proveedor' : (done[2] ? (st.selection.model || 'Modelo de .env') : 'Elige el modelo'),
+      3: !done[2] ? 'Primero elige el modelo' : (running ? `Limpiando ${run.current.project}…` : 'Elige la aplicación y lánzala'),
+    };
+    document.querySelectorAll('.step').forEach(tab => {
+      const n = Number(tab.dataset.step);
+      tab.disabled = !stepAllowed(n) && !(n === 3 && running);
+      tab.setAttribute('aria-selected', String(n === steps.current));
+      tab.tabIndex = n === steps.current ? 0 : -1;
+      tab.classList.toggle('complete', !!done[n] && n !== steps.current);
+      $(`#hint-${n}`).textContent = hints[n];
+      tab.title = tab.disabled ? (n === 2 ? 'Conecta antes un proveedor (paso 1)' : 'Elige antes el modelo (paso 2)') : '';
+    });
+    document.querySelectorAll('[role="tabpanel"]').forEach(panel => { panel.hidden = Number(panel.dataset.step) !== steps.current; });
+    document.querySelectorAll('[data-go]').forEach(btn => { btn.disabled = !stepAllowed(Number(btn.dataset.go)); });
+  }
+  function goStep(n) {
+    if (!stepAllowed(n)) return;
+    steps.current = n;
+    renderSteps();
+    document.querySelector('.steps').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  document.querySelectorAll('.step').forEach(tab => tab.addEventListener('click', () => goStep(Number(tab.dataset.step))));
+  document.querySelectorAll('[data-go]').forEach(btn => btn.addEventListener('click', () => goStep(Number(btn.dataset.go))));
+  document.querySelector('.steps').addEventListener('keydown', (ev) => {
+    if (!['ArrowLeft', 'ArrowRight'].includes(ev.key)) return;
+    const order = [1, 2, 3].filter(stepAllowed);
+    const next = order[(order.indexOf(steps.current) + (ev.key === 'ArrowRight' ? 1 : order.length - 1)) % order.length];
+    goStep(next);
+    $(`#tab-${next}`).focus();
+  });
+
+  async function loadSelection() {
+    try {
+      const res = await api('GET', '/api/config/model');
+      st.selection = res.selection;
+      renderEffective(res.effective);
+      renderSelection();
+    } catch (e) { say('error', `No se pudo leer el modelo elegido: ${e.message}`); }
+  }
+
+  (async () => {
+    if (location.search) history.replaceState(null, '', location.pathname);
+    await loadStatuses();
+    await loadSelection();
+    await loadProjects();
+    await loadSonar();
+    await resumeRun();
+    // Open the first step that still needs doing (or the run in progress).
+    const active = run.current && ['starting', 'running'].includes(run.current.status);
+    steps.current = active ? 3 : [3, 2, 1].find(stepAllowed);
+    renderSteps();
+    // Model lists of the connected providers, so the rows can show them.
+    for (const pid of Object.keys(LABEL)) if (st.status[pid]?.ready) await loadModels(pid, false);
+  })();
+})();
+</script>
+</body>
+</html>

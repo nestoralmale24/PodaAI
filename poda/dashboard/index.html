@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
 <title>Poda AI</title>
-<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+<link rel="icon" type="image/png" href="/assets/poda-favicon.png">
 <script>
   (() => {
     let theme = null;
@@ -14,254 +14,201 @@
     document.documentElement.dataset.theme = theme;
   })();
 </script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<!-- Sistema de diseño hiberus: tokens y componentes base (botones, hero, header, footer, inputs) -->
-<link rel="stylesheet" href="/assets/tokens.css">
+<!-- Sistema de diseño NA.: tokens y componentes base (botones, hero, cabecera, campos) -->
+<link rel="stylesheet" href="/assets/na.css">
 <style>
-  /* Solo lo propio del dashboard, construido sobre los tokens de hiberus. */
-  body { background: var(--hib-bg-alt); font-size: 16px; }
-  .site-header { justify-content: flex-start; }
-  .site-header { height: auto; padding-block: var(--sp-3); }
-  .brand { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 6px; text-decoration: none; }
-  .brand img { height: 28px; width: auto; display: block; }
-  .product { font-family: var(--font-head); font-weight: 700; font-size: 14px; line-height: 1; letter-spacing: .02em; color: var(--hib-blue); }
+  /* Solo lo propio del dashboard, construido sobre los tokens NA. (assets/na.css). Sin overrides por tema: todo va por tokens --c-*. */
+  body { font-size: 1rem; }
+  .brand { display: inline-flex; align-items: center; gap: var(--sp-2); text-decoration: none; }
+  .site-header { padding: 6px var(--sp-5); gap: var(--sp-4); }
+  .brand-mark { height: 26px; width: auto; display: block; }
+  :root[data-theme="dark"] .brand-mark { filter: drop-shadow(0 0 1px rgba(243, 247, 253, .55)); }
+  .product { font-weight: 800; font-size: .95rem; line-height: 1; letter-spacing: -.02em; color: var(--c-text); }
+  .byline { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--c-muted); padding-left: var(--sp-3); border-left: 1px solid var(--c-divider); }
+  .byline img { height: 12px; width: auto; }
+  .header-tools { margin-left: auto; display: inline-flex; align-items: center; gap: var(--sp-2); }
+  .lang { display: inline-flex; padding: 2px; gap: 2px; background: var(--c-sunken); border-radius: var(--r-pill); }
+  .lang button { display: grid; place-items: center; width: 28px; height: 24px; padding: 0; border: 0; border-radius: var(--r-pill); background: transparent; cursor: pointer; opacity: .55; transition: opacity .2s ease, background-color .22s var(--ease-out); }
+  .lang button:hover { opacity: .9; }
+  .lang button[aria-pressed="true"] { opacity: 1; background: var(--c-surface); box-shadow: var(--c-shadow); }
+  .lang svg { width: 18px; height: 12px; border-radius: 2px; display: block; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  @media (max-width: 560px) { .byline { display: none; } }
   main.container { padding-block: var(--sp-7) var(--sp-8); }
-  .hero { padding: var(--sp-7) var(--sp-8); margin-bottom: var(--sp-7); }
-  .hero .eyebrow { color: #fff; opacity: .9; }
-  .hero h1 { font-size: clamp(32px, 4vw, 48px); margin-bottom: var(--sp-3); }
-  .hero .lead { max-width: 60ch; margin: 0; }
+  .hero { margin-bottom: var(--sp-6); }
+  .hero h1 { margin-bottom: var(--sp-3); }
+  .hero .lead { margin: 0; }
   .section-head { margin-bottom: var(--sp-5); }
-  .section-head h2 { font-size: clamp(24px, 2.6vw, 32px); margin-bottom: var(--sp-2); }
-  .section-head p { color: var(--hib-navy-soft); margin: 0; max-width: 80ch; }
+  .section-head p { color: var(--c-muted); margin: 0; max-width: 80ch; }
   .block { margin-bottom: var(--sp-8); }
-  .providers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-5); }
-  @media (max-width: 900px) { .providers { grid-template-columns: 1fr; } .hero { padding: var(--sp-6) var(--sp-5); } }
-  .panel { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: var(--sp-5) var(--sp-6); transition: box-shadow .2s ease; }
-  .panel:hover { box-shadow: var(--shadow); }
-  .panel h3 { font-size: 20px; margin: 0 0 var(--sp-2); }
+  .providers { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--sp-5); }
+  @media (max-width: 900px) { .hero { padding: var(--sp-5); } }
+  .panel { background: var(--c-surface); border-radius: var(--r); box-shadow: var(--c-shadow); padding: var(--sp-5) var(--sp-6); transition: box-shadow .22s var(--ease-out); }
+  .panel:hover { box-shadow: var(--c-shadow-hi); }
+  .panel h3 { margin: 0 0 var(--sp-2); }
   .pf-provider-status { display: block; font-size: 14px; font-weight: 600; margin-bottom: var(--sp-4); }
-  .pf-provider-status.ok { color: var(--hib-blue-deep); }
-  .pf-provider-status.warn { color: var(--hib-indigo); }
-  label { display: block; margin: 0 0 6px; font-family: var(--font-head); font-size: 13px; font-weight: 700; color: var(--hib-navy-soft); text-transform: uppercase; letter-spacing: .06em; }
+  .pf-provider-status.ok { color: var(--c-accent); }
+  .pf-provider-status.warn { color: var(--c-warn); }
+  label { display: block; margin: 0 0 6px; font-size: 13px; font-weight: 600; color: var(--c-muted); }
   .form-row { margin-bottom: var(--sp-4); }
-  select.field { appearance: none; padding-right: 40px; cursor: pointer; background: #fff url("/assets/chevron.svg") no-repeat right 14px center; }
-  select.field:disabled { background-color: var(--hib-bg-alt); color: var(--hib-navy-soft); cursor: default; }
-  .field.pf-invalid { border-color: var(--hib-indigo); box-shadow: 0 0 0 3px rgba(91, 83, 255, .15); }
+  select.field { appearance: none; padding-right: 40px; cursor: pointer; background: var(--c-surface) url("/assets/chevron.svg") no-repeat right 14px center; }
+  :root[data-theme="dark"] select.field { background-image: url("/assets/chevron-light.svg"); }
+  select.field:disabled { background-color: var(--c-sunken); color: var(--c-muted); cursor: default; }
+  .field.pf-invalid { border-color: var(--c-warn); box-shadow: 0 0 0 3px var(--c-accent-soft); }
   .actions { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin-top: var(--sp-2); }
-  .btn { min-height: 44px; }
-  .btn:disabled { opacity: .45; cursor: default; transform: none; box-shadow: none; }
-  .btn-secondary:disabled:hover { background: transparent; color: var(--hib-blue); }
-  .btn-ghost { background: transparent; color: var(--hib-navy-soft); border-color: var(--hib-line); }
-  .btn-ghost:hover:not(:disabled) { border-color: var(--hib-navy); color: var(--hib-navy); }
-  .btn:focus-visible, .field:focus-visible, a:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 53, 243, .35); }
-  .pf-provider-msg, .pf-progress { min-height: 24px; margin-top: var(--sp-3); font-size: 14px; color: var(--hib-navy-soft); }
-  /* Message states (provider messages, save and run status) — scoped so they never style the phase list. */
-  :is(.pf-progress, .pf-provider-msg, .desc).running { color: var(--hib-navy-soft); }
-  :is(.pf-progress, .pf-provider-msg).done { color: var(--hib-blue-deep); }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .pf-provider-msg, .pf-progress { min-height: 24px; margin-top: var(--sp-3); font-size: 14px; color: var(--c-muted); }
+  /* Estados de mensaje (proveedores, guardado y ejecución): icono + color. Acotados para no tocar la lista de fases. */
+  :is(.pf-progress, .pf-provider-msg, .desc).running { color: var(--c-muted); }
+  :is(.pf-progress, .pf-provider-msg).done { color: var(--c-accent); }
   :is(.pf-progress, .pf-provider-msg).done::before { content: "✔ "; }
-  :is(.pf-progress, .pf-provider-msg).warn { color: var(--hib-indigo); }
-  :is(.pf-progress, .pf-provider-msg, .desc).error { color: var(--hib-navy); font-weight: 600; background: var(--hib-lavender); border-radius: var(--radius-sm); padding: 8px 12px; }
+  :is(.pf-progress, .pf-provider-msg).warn { color: var(--c-warn); }
+  :is(.pf-progress, .pf-provider-msg).warn::before { content: "▲ "; }
+  :is(.pf-progress, .pf-provider-msg, .desc).error { color: var(--c-error); font-weight: 600; background: var(--c-error-soft); border-radius: var(--r-sm); padding: 8px 12px; }
   :is(.pf-progress, .pf-provider-msg, .desc).error::before { content: "✖ "; }
-  .model-row { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, .8fr) minmax(0, 1.3fr); gap: var(--sp-4); align-items: center; padding: var(--sp-5) 0; border-top: 1px solid var(--hib-lavender); }
+  .model-row { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, .8fr) minmax(0, 1.3fr); gap: var(--sp-4); align-items: center; padding: var(--sp-5) 0; border-top: 1px solid var(--c-divider); }
   .model-row:first-child { border-top: 0; padding-top: 0; }
-  .model-row .name { font-family: var(--font-head); font-weight: 700; font-size: 18px; }
-  .model-row .desc { color: var(--hib-navy-soft); font-size: 14px; margin: 2px 0 0; }
+  .model-row .name { font-weight: 700; font-size: 1.1rem; }
+  .model-row .desc { color: var(--c-muted); font-size: 14px; margin: 2px 0 0; }
   @media (max-width: 760px) { .model-row { grid-template-columns: 1fr; } }
-  .badge { display: inline-block; margin-left: var(--sp-2); padding: 2px 10px; border-radius: var(--radius-pill); background: var(--hib-lavender); color: var(--hib-navy); font-size: 12px; font-weight: 700; vertical-align: middle; }
-  .effective { margin-top: var(--sp-5); padding: var(--sp-4) var(--sp-5); border-radius: var(--radius-sm); background: var(--hib-bg-alt); border-left: 4px solid var(--hib-blue); font-size: 15px; }
-  .effective code { font-size: 14px; color: var(--hib-blue-deep); }
-  .setup { margin-bottom: var(--sp-5); padding: var(--sp-4) var(--sp-5); border-radius: var(--radius); background: var(--hib-lavender); color: var(--hib-navy); border-left: 4px solid var(--hib-blue); }
+  .badge { display: inline-block; margin-left: var(--sp-2); padding: 2px 10px; border-radius: var(--r-pill); background: var(--c-sunken); color: var(--c-text); font-size: 12px; font-weight: 700; vertical-align: middle; }
+  .effective { margin-top: var(--sp-5); padding: var(--sp-4) var(--sp-5); border-radius: var(--r-sm); background: var(--c-sunken); border-left: 4px solid var(--c-accent); font-size: 15px; }
+  .effective code { font-family: var(--mono); font-size: 14px; color: var(--c-accent); }
+  .setup { margin-bottom: var(--sp-5); padding: var(--sp-4) var(--sp-5); border-radius: var(--r); background: var(--c-sunken); color: var(--c-text); border-left: 4px solid var(--c-accent); }
   .setup[hidden], #modelRunNote[hidden] { display: none; }
   #modelRunNote { margin-top: var(--sp-3); }
   .footer-bar { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-4); flex-wrap: wrap; margin-top: var(--sp-4); }
   .footer-bar .pf-progress { margin-top: 0; }
-  .site-footer.light { background: transparent; color: var(--hib-navy-soft); padding-block: var(--sp-6); border-top: 1px solid var(--hib-lavender); }
-  .site-footer.light .container { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-4); flex-wrap: wrap; font-size: 14px; }
-  .site-footer.light img { height: 14px; width: auto; }
-  .tm-overlay { position: fixed; inset: 0; background: rgba(24, 35, 90, .55); display: flex; align-items: center; justify-content: center; padding: var(--sp-4); z-index: 100; }
-  .tm-dialog { width: min(480px, 100%); background: #fff; border-radius: var(--radius-lg); box-shadow: var(--shadow); padding: var(--sp-6); }
-  .tm-title { font-family: var(--font-head); font-size: 22px; font-weight: 700; margin-bottom: var(--sp-3); }
+  .site-footer { color: var(--c-muted); border-top: 1px solid var(--c-divider); }
+  .site-footer .container { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-4); flex-wrap: wrap; font-size: 14px; }
+  .site-footer img { height: 18px; width: auto; display: block; }
+  .tm-overlay { position: fixed; inset: 0; background: var(--c-veil); display: flex; align-items: center; justify-content: center; padding: var(--sp-4); z-index: 100; }
+  .tm-dialog { width: min(480px, 100%); background: var(--c-surface); border-radius: var(--r-lg); box-shadow: var(--c-shadow-hi); padding: var(--sp-6); animation: pop .22s var(--ease-out); }
+  @keyframes pop { from { opacity: 0; transform: scale(.96); } }
+  .tm-title { font-size: 1.35rem; font-weight: 700; margin-bottom: var(--sp-3); }
   .tm-btns { display: flex; justify-content: flex-end; margin-top: var(--sp-5); }
-  .cl-steps { margin: 0 0 var(--sp-4); padding-left: 20px; color: var(--hib-navy-soft); }
+  .cl-steps { margin: 0 0 var(--sp-4); padding-left: 20px; color: var(--c-muted); }
   .cl-link { display: block; margin-bottom: var(--sp-4); font-weight: 600; word-break: break-all; }
   .pf-input-row { display: flex; gap: var(--sp-3); }
-  .cl-code { font: 700 22px/1.2 var(--font-head); letter-spacing: .14em; text-align: center; }
+  .cl-code { font: 700 22px/1.2 var(--mono); letter-spacing: .14em; text-align: center; }
   .run-head { display: flex; justify-content: space-between; align-items: flex-end; gap: var(--sp-4); flex-wrap: wrap; margin-bottom: var(--sp-4); }
-  .run-head code { color: var(--hib-navy-soft); font-size: 14px; word-break: break-all; }
+  .run-head code { color: var(--c-muted); font-family: var(--mono); font-size: 14px; word-break: break-all; }
   .projects { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--sp-3); margin-bottom: var(--sp-5); }
-  .project { position: relative; display: block; text-transform: none; letter-spacing: 0; font-family: var(--font-body); font-size: 15px; font-weight: 500; color: var(--hib-navy);
-    border: 1px solid var(--hib-line); border-radius: var(--radius-sm); padding: var(--sp-3) var(--sp-4); cursor: pointer; background: #fff; transition: border-color .15s ease, box-shadow .15s ease; margin: 0; }
-  .project:hover { border-color: var(--hib-blue); }
+  .project { position: relative; display: block; font-size: 15px; font-weight: 500; color: var(--c-text);
+    border: 1px solid var(--c-border); border-radius: var(--r-sm); padding: var(--sp-3) var(--sp-4); cursor: pointer; background: var(--c-surface); transition: border-color .2s ease, box-shadow .2s ease; margin: 0; }
+  .project:hover { border-color: var(--c-accent); }
   .project input { position: absolute; opacity: 0; }
-  .project:has(input:checked) { border-color: var(--hib-blue); box-shadow: 0 0 0 3px rgba(0, 53, 243, .15); }
-  .project:has(input:focus-visible) { box-shadow: 0 0 0 3px rgba(0, 53, 243, .35); }
-  .project .pname { display: block; font-family: var(--font-head); font-weight: 700; font-size: 16px; word-break: break-all; }
-  .project .pmeta { display: block; color: var(--hib-navy-soft); font-size: 13px; margin-top: 2px; }
+  .project:has(input:checked) { border-color: var(--c-accent); box-shadow: 0 0 0 3px var(--c-accent-soft); }
+  .project:has(input:focus-visible) { box-shadow: var(--c-focus); }
+  .project .pname { display: block; font-weight: 700; font-size: 16px; word-break: break-all; }
+  .project .pmeta { display: block; color: var(--c-muted); font-size: 13px; margin-top: 2px; }
   .options { display: grid; gap: var(--sp-2); margin-bottom: var(--sp-4); }
-  .check { display: flex; gap: var(--sp-3); align-items: flex-start; text-transform: none; letter-spacing: 0; font-family: var(--font-body); font-size: 15px; font-weight: 400; color: var(--hib-navy); margin: 0; cursor: pointer; }
-  .check input { width: 18px; height: 18px; margin-top: 3px; accent-color: var(--hib-blue); flex: none; }
-  .check input:disabled + span { color: var(--hib-navy-soft); }
-  .previous { display: grid; gap: var(--sp-2); padding: var(--sp-3) var(--sp-4); background: var(--hib-bg-alt); border-radius: var(--radius-sm); }
+  .check { display: flex; gap: var(--sp-3); align-items: flex-start; font-size: 15px; font-weight: 400; color: var(--c-text); margin: 0; cursor: pointer; }
+  .check input { width: 18px; height: 18px; margin-top: 3px; accent-color: var(--c-accent); flex: none; }
+  .check input:disabled + span { color: var(--c-muted); }
+  .previous { display: grid; gap: var(--sp-2); padding: var(--sp-3) var(--sp-4); background: var(--c-sunken); border-radius: var(--r-sm); }
   .previous[hidden], .live[hidden], #resultPanel[hidden], #runCancel[hidden] { display: none; }
-  .desc { color: var(--hib-navy-soft); font-size: 14px; margin: 0; }
+  .desc { color: var(--c-muted); font-size: 14px; margin: 0; }
   .live { margin-top: var(--sp-5); }
   .live-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--sp-4); flex-wrap: wrap; }
-  .run-status { font-family: var(--font-head); font-weight: 700; font-size: 14px; padding: 4px 12px; border-radius: var(--radius-pill); background: var(--hib-lavender); color: var(--hib-navy); }
-  .run-status.running { background: var(--hib-blue); color: #fff; }
+  .run-status { font-weight: 700; font-size: 12px; padding: 4px 12px; border-radius: var(--r-pill); background: var(--c-sunken); color: var(--c-text); }
+  .run-status.running { background: var(--c-accent); color: var(--c-on-accent); }
   .phases { list-style: none; margin: var(--sp-4) 0; padding: 0; display: grid; gap: var(--sp-2); }
   .phase { display: grid; grid-template-columns: 24px minmax(0, 220px) minmax(0, 1fr); gap: var(--sp-3); align-items: center; font-size: 15px; }
-  .phase .ico { text-align: center; font-weight: 700; color: var(--hib-line); }
-  .phase.running .ico { color: var(--hib-blue); animation: spin 1s linear infinite; display: inline-block; }
-  .phase.done .ico { color: var(--hib-blue-deep); }
-  .phase.skipped { color: var(--hib-navy-soft); }
+  .phase .ico { text-align: center; font-weight: 700; color: var(--c-border); }
+  .phase.running .ico { color: var(--c-accent); animation: spin 1s linear infinite; display: inline-block; }
+  .phase.done .ico { color: var(--c-accent); }
+  .phase.skipped { color: var(--c-muted); }
   .phase .ttl { font-weight: 600; }
-  .phase.pending .ttl { color: var(--hib-navy-soft); font-weight: 500; }
-  .phase .det { color: var(--hib-navy-soft); font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .bar { height: 8px; background: var(--hib-lavender); border-radius: var(--radius-pill); overflow: hidden; }
-  .bar span { display: block; height: 100%; background: var(--hib-gradient); border-radius: var(--radius-pill); transition: width .25s ease; }
+  .phase.pending .ttl { color: var(--c-muted); font-weight: 500; }
+  .phase .det { color: var(--c-muted); font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar { height: 6px; background: var(--c-sunken); border-radius: var(--r-pill); overflow: hidden; }
+  .bar span { display: block; height: 100%; background: var(--na-ring); border-radius: var(--r-pill); transition: width .25s var(--ease-out); }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .kpis { padding: var(--sp-5); gap: var(--sp-5) var(--sp-4); grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); border-radius: var(--radius); margin: var(--sp-4) 0; }
+  .kpis { padding: var(--sp-5); gap: var(--sp-5) var(--sp-4); grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); margin: var(--sp-4) 0; }
   .kpi { min-width: 0; }
-  .kpi .num { font-size: clamp(24px, 2.6vw, 32px); overflow-wrap: anywhere; }
+  .kpi .num { overflow-wrap: anywhere; }
   .kpi .label { font-size: 13px; }
   .activity { display: grid; gap: 4px; margin-bottom: var(--sp-4); font-size: 14px; }
   .activity div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .activity b { color: var(--hib-blue); font-weight: 700; }
-  .log { height: 280px; overflow: auto; background: var(--hib-navy); color: #fff; border-radius: var(--radius-sm); padding: var(--sp-3) var(--sp-4);
-    font: 13px/1.55 ui-monospace, "Cascadia Mono", Consolas, monospace; white-space: pre-wrap; word-break: break-word; }
-  .log .w { color: var(--hib-lavender); font-weight: 700; } .log .e { color: #fff; background: var(--hib-indigo); }
-  .log .ok { color: var(--hib-cyan); } .log .d { color: var(--hib-line); }
-  .tabs { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin: var(--sp-4) 0; }
-  .tab { font-family: var(--font-head); font-weight: 600; font-size: 14px; border: 1px solid var(--hib-line); background: #fff; color: var(--hib-navy); border-radius: var(--radius-pill); padding: 8px 16px; cursor: pointer; min-height: 40px; }
-  .tab[aria-selected="true"] { background: var(--hib-navy); color: #fff; border-color: var(--hib-navy); }
-  .report { max-height: 640px; overflow: auto; border-top: 1px solid var(--hib-lavender); padding-top: var(--sp-4); font-size: 15px; }
-  .report h1 { font-size: 28px; } .report h2 { font-size: 22px; margin-top: var(--sp-5); } .report h3 { font-size: 18px; margin-top: var(--sp-4); }
-  .report table { border-collapse: collapse; width: 100%; margin: var(--sp-3) 0; font-size: 14px; }
-  .report th, .report td { border-bottom: 1px solid var(--hib-lavender); padding: 6px 10px; text-align: left; vertical-align: top; }
-  .report th { color: var(--hib-navy-soft); font-weight: 700; }
-  .report blockquote { margin: var(--sp-3) 0; padding: var(--sp-2) var(--sp-4); border-left: 4px solid var(--hib-blue); background: var(--hib-bg-alt); }
-  .report pre { white-space: pre-wrap; word-break: break-word; font: 13px/1.5 ui-monospace, Consolas, monospace; background: var(--hib-bg-alt); padding: var(--sp-3); border-radius: var(--radius-sm); }
-  .report code { font-size: 13px; color: var(--hib-blue-deep); }
-  /* ---------- Modo oscuro (paleta hiberus: marino de fondo, blanco/lavanda de texto, cian de acento) ---------- */
-  .theme-toggle { margin-left: auto; display: inline-flex; align-items: center; gap: var(--sp-2); min-height: 40px; padding: 8px 16px;
-    font-family: var(--font-head); font-weight: 600; font-size: 14px; border-radius: var(--radius-pill); cursor: pointer;
-    background: transparent; color: var(--hib-navy); border: 1px solid var(--hib-line); transition: border-color .2s ease, color .2s ease; }
-  .theme-toggle:hover { border-color: var(--hib-blue); color: var(--hib-blue); }
-  .theme-toggle:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 53, 243, .35); }
-  .theme-toggle svg { width: 18px; height: 18px; }
+  .activity b { color: var(--c-accent); font-weight: 700; }
+  .log { height: 280px; overflow: auto; background: var(--na-void); color: var(--na-star); border-radius: var(--r-sm); padding: var(--sp-3) var(--sp-4); box-shadow: inset 0 0 0 1px rgba(217, 224, 237, .10);
+    font: 13px/1.55 var(--mono); white-space: pre-wrap; word-break: break-word; }
+  .log .w { color: var(--na-dot); font-weight: 700; } .log .e { color: var(--na-ember-hi); font-weight: 700; }
+  .log .ok { color: var(--na-blue-hi); } .log .d { color: var(--na-mist); }
+  /* Pestañas segmentadas (resultado) */
+  .tabs { display: inline-flex; flex-wrap: wrap; gap: 4px; margin: var(--sp-4) 0; padding: 4px; background: var(--c-sunken); border-radius: var(--r-pill); }
+  .tab { font: 600 14px var(--font); border: 0; background: transparent; color: var(--c-muted); border-radius: var(--r-pill); padding: 8px 16px; cursor: pointer; min-height: 40px; transition: background-color .22s var(--ease-out), color .2s ease, box-shadow .22s var(--ease-out); }
+  .tab:hover { color: var(--c-text); }
+  .tab[aria-selected="true"] { background: var(--c-surface); color: var(--c-text); box-shadow: var(--c-shadow); }
+  .report { max-height: 640px; overflow: auto; border-top: 1px solid var(--c-divider); padding-top: var(--sp-4); font-size: 15px; }
+  .report h1 { font-size: 1.75rem; letter-spacing: -.02em; } .report h2 { font-size: 1.4rem; margin-top: var(--sp-5); } .report h3 { font-size: 1.1rem; margin-top: var(--sp-4); }
+  .report table { border-collapse: collapse; width: 100%; margin: var(--sp-3) 0; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .report th, .report td { border-bottom: 1px solid var(--c-divider); padding: 6px 10px; text-align: left; vertical-align: top; }
+  .report th { color: var(--c-muted); font-size: 12px; font-weight: 700; }
+  .report blockquote { margin: var(--sp-3) 0; padding: var(--sp-2) var(--sp-4); border-left: 4px solid var(--c-accent); background: var(--c-sunken); }
+  .report pre { white-space: pre-wrap; word-break: break-word; font: 13px/1.5 var(--mono); background: var(--c-sunken); padding: var(--sp-3); border-radius: var(--r-sm); }
+  .report code { font-family: var(--mono); font-size: 13px; color: var(--c-accent); }
+  /* Selector de tema */
+  .theme-toggle { display: inline-grid; place-items: center; width: 28px; height: 28px; padding: 0;
+    border-radius: var(--r-pill); cursor: pointer; background: transparent; color: var(--c-text); border: 1px solid var(--c-border); transition: border-color .2s ease, color .2s ease; }
+  .theme-toggle:hover { border-color: var(--c-accent); color: var(--c-accent); }
+  .theme-toggle svg { width: 14px; height: 14px; }
   .logo-dark { display: none !important; }
   :root[data-theme="dark"] .logo-light { display: none !important; }
   :root[data-theme="dark"] .logo-dark { display: block !important; }
   :root[data-theme="dark"] .ico-moon, :root:not([data-theme="dark"]) .ico-sun { display: none; }
-
-  :root[data-theme="dark"] { color-scheme: dark; }
-  :root[data-theme="dark"] body { background: #0E1538; color: #fff; }
-  :root[data-theme="dark"] :is(h1, h2, h3, h4) { color: #fff; }
-  :root[data-theme="dark"] a { color: var(--hib-cyan); }
-  :root[data-theme="dark"] .site-header { background: var(--hib-navy); box-shadow: 0 1px 0 rgba(221, 221, 254, .12); }
-  :root[data-theme="dark"] .product { color: var(--hib-cyan); }
-  :root[data-theme="dark"] .theme-toggle { color: #fff; border-color: var(--hib-navy-soft); }
-  :root[data-theme="dark"] .theme-toggle:hover { border-color: var(--hib-cyan); color: var(--hib-cyan); }
-  :root[data-theme="dark"] .eyebrow { color: var(--hib-cyan); }
-  :root[data-theme="dark"] .hero .eyebrow { color: #fff; }
-  :root[data-theme="dark"] :is(.section-head p, .desc, .model-row .desc, .project .pmeta, .phase .det, .phase.skipped, .phase.pending .ttl,
-    .run-head code, .cl-steps, .pf-provider-msg, .pf-progress, .report th, .check input:disabled + span) { color: var(--hib-lavender); }
-  :root[data-theme="dark"] label { color: var(--hib-lavender); }
-  :root[data-theme="dark"] :is(.panel, .tm-dialog) { background: var(--hib-navy); box-shadow: 0 0 0 1px rgba(221, 221, 254, .10); }
-  :root[data-theme="dark"] .panel:hover { box-shadow: 0 0 0 1px rgba(221, 221, 254, .18), 0 12px 32px rgba(0, 0, 0, .35); }
-  :root[data-theme="dark"] .field { background: #0E1538; color: #fff; border-color: var(--hib-navy-soft); }
-  :root[data-theme="dark"] .field::placeholder { color: rgba(221, 221, 254, .55); }
-  :root[data-theme="dark"] .field:focus { border-color: var(--hib-cyan); box-shadow: 0 0 0 3px rgba(0, 204, 226, .25); }
-  :root[data-theme="dark"] select.field { background: #0E1538 url("/assets/chevron-light.svg") no-repeat right 14px center; }
-  :root[data-theme="dark"] select.field:disabled { background-color: rgba(59, 71, 121, .35); color: var(--hib-lavender); }
-  :root[data-theme="dark"] .btn-secondary { color: #fff; border-color: #fff; }
-  :root[data-theme="dark"] .btn-secondary:hover:not(:disabled) { background: #fff; color: var(--hib-blue); }
-  :root[data-theme="dark"] .btn-secondary:disabled:hover { background: transparent; color: #fff; }
-  :root[data-theme="dark"] .btn-ghost { color: var(--hib-lavender); border-color: var(--hib-navy-soft); }
-  :root[data-theme="dark"] .btn-ghost:hover:not(:disabled) { color: #fff; border-color: var(--hib-lavender); }
-  :root[data-theme="dark"] :is(.btn, .field, a, .tab):focus-visible { box-shadow: 0 0 0 3px rgba(0, 204, 226, .45); }
-  :root[data-theme="dark"] .pf-provider-status.ok, :root[data-theme="dark"] :is(.pf-progress, .pf-provider-msg).done { color: var(--hib-cyan); }
-  :root[data-theme="dark"] .pf-provider-status.warn, :root[data-theme="dark"] :is(.pf-progress, .pf-provider-msg).warn { color: var(--hib-lavender); }
-  :root[data-theme="dark"] .field.pf-invalid { border-color: var(--hib-lavender); box-shadow: 0 0 0 3px rgba(221, 221, 254, .2); }
-  :root[data-theme="dark"] :is(.effective, .previous) { background: rgba(59, 71, 121, .35); }
-  :root[data-theme="dark"] .effective { border-left-color: var(--hib-cyan); }
-  :root[data-theme="dark"] .effective code, :root[data-theme="dark"] .report code { color: var(--hib-cyan); }
-  :root[data-theme="dark"] .model-row { border-top-color: rgba(221, 221, 254, .14); }
-  :root[data-theme="dark"] .check { color: #fff; }
-  :root[data-theme="dark"] .project { background: #0E1538; color: #fff; border-color: var(--hib-navy-soft); }
-  :root[data-theme="dark"] .project:hover { border-color: var(--hib-cyan); }
-  :root[data-theme="dark"] .project:has(input:checked) { border-color: var(--hib-cyan); box-shadow: 0 0 0 3px rgba(0, 204, 226, .25); }
-  :root[data-theme="dark"] .phase.done .ico { color: var(--hib-cyan); }
-  :root[data-theme="dark"] .phase .ico { color: var(--hib-navy-soft); }
-  :root[data-theme="dark"] .phase.running .ico { color: var(--hib-cyan); }
-  :root[data-theme="dark"] .bar { background: var(--hib-navy-soft); }
-  :root[data-theme="dark"] .kpi-band { background: var(--hib-blue-deep); }
-  :root[data-theme="dark"] .activity b { color: var(--hib-cyan); }
-  :root[data-theme="dark"] .log { background: #0A0F2A; box-shadow: inset 0 0 0 1px rgba(221, 221, 254, .10); }
-  :root[data-theme="dark"] .tab { background: transparent; color: #fff; border-color: var(--hib-navy-soft); }
-  :root[data-theme="dark"] .tab[aria-selected="true"] { background: #fff; color: var(--hib-navy); border-color: #fff; }
-  :root[data-theme="dark"] .report { border-top-color: rgba(221, 221, 254, .14); }
-  :root[data-theme="dark"] .report :is(th, td) { border-bottom-color: rgba(221, 221, 254, .14); }
-  :root[data-theme="dark"] .report :is(blockquote, pre) { background: rgba(59, 71, 121, .35); }
-  :root[data-theme="dark"] .report blockquote { border-left-color: var(--hib-cyan); }
-  :root[data-theme="dark"] .site-footer.light { color: var(--hib-lavender); border-top-color: rgba(221, 221, 254, .14); }
-  :root[data-theme="dark"] .tm-overlay { background: rgba(0, 0, 0, .6); }
   /* ---------- Pasos en pestañas ---------- */
   .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); margin-bottom: var(--sp-6); }
   .step { display: flex; align-items: center; gap: var(--sp-3); text-align: left; padding: var(--sp-3) var(--sp-4); min-height: 64px;
-    background: #fff; border: 2px solid transparent; border-radius: var(--radius); box-shadow: var(--shadow-sm); cursor: pointer;
-    font-family: var(--font-head); color: var(--hib-navy); transition: border-color .2s ease, box-shadow .2s ease; }
-  .step:hover:not(:disabled) { box-shadow: var(--shadow); }
-  .step:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(0, 53, 243, .35); }
+    background: var(--c-surface); border: 2px solid transparent; border-radius: var(--r); box-shadow: var(--c-shadow); cursor: pointer;
+    font-family: var(--font); color: var(--c-text); transition: border-color .2s ease, box-shadow .22s var(--ease-out), transform .1s var(--ease-out); }
+  .step:hover:not(:disabled) { box-shadow: var(--c-shadow-hi); }
+  .step:active:not(:disabled) { transform: scale(.98); }
   .step .num { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 800;
-    background: var(--hib-lavender); color: var(--hib-navy); }
+    background: var(--c-sunken); color: var(--c-text); }
   .step .txt { display: grid; gap: 2px; min-width: 0; }
   .step .ttl { font-weight: 700; font-size: 16px; }
-  .step small { font-family: var(--font-body); font-size: 13px; color: var(--hib-navy-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .step[aria-selected="true"] { border-color: var(--hib-blue); }
-  .step[aria-selected="true"] .num { background: var(--hib-blue); color: #fff; }
-  .step.complete .num { background: var(--hib-blue-deep); color: #fff; }
+  .step small { font-size: 13px; color: var(--c-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .step[aria-selected="true"] { border-color: var(--c-accent); }
+  .step[aria-selected="true"] .num { background: var(--c-accent); color: var(--c-on-accent); }
+  .step.complete .num { background: var(--c-sunken); color: var(--c-accent); }
+  .step.complete .num::after { content: "✔"; }
+  .step.complete .num { font-size: 0; } .step.complete .num::after { font-size: 16px; }
   .step:disabled { cursor: not-allowed; opacity: .55; box-shadow: none; }
   [role="tabpanel"][hidden] { display: none; }
   .step-nav { display: flex; justify-content: space-between; gap: var(--sp-3); flex-wrap: wrap; margin-top: var(--sp-5); }
   .step-nav .btn-primary { margin-left: auto; }
   @media (max-width: 760px) { .steps { grid-template-columns: 1fr; } }
-  :root[data-theme="dark"] .step { background: var(--hib-navy); color: #fff; box-shadow: 0 0 0 1px rgba(221, 221, 254, .10); }
-  :root[data-theme="dark"] .step small { color: var(--hib-lavender); }
-  :root[data-theme="dark"] .step[aria-selected="true"] { border-color: var(--hib-cyan); }
-  :root[data-theme="dark"] .step[aria-selected="true"] .num { background: var(--hib-cyan); color: var(--hib-navy); }
-  :root[data-theme="dark"] .step.complete .num { background: var(--hib-blue); color: #fff; }
-  :root[data-theme="dark"] .step:focus-visible { box-shadow: 0 0 0 3px rgba(0, 204, 226, .45); }
   .sonar-card { display: flex; gap: var(--sp-3); align-items: flex-start; padding: var(--sp-3) var(--sp-4); margin-bottom: var(--sp-4);
-    border-radius: var(--radius-sm); background: var(--hib-bg-alt); border-left: 4px solid var(--hib-line); }
+    border-radius: var(--r-sm); background: var(--c-sunken); border-left: 4px solid var(--c-border); }
   .sonar-card .sm { font-size: 13px; margin-top: 2px; }
-  .sonar-dot { flex: none; width: 12px; height: 12px; margin-top: 6px; border-radius: 50%; background: var(--hib-line); }
-  .sonar-card.ready { border-left-color: var(--hib-blue); } .sonar-card.ready .sonar-dot { background: var(--hib-blue); }
-  .sonar-card.starting .sonar-dot { background: var(--hib-indigo); animation: pulse 1.2s ease-in-out infinite; }
-  .sonar-card.starting { border-left-color: var(--hib-indigo); }
-  .sonar-card.error, .sonar-card.unavailable { border-left-color: var(--hib-navy); }
-  .sonar-card.error .sonar-dot, .sonar-card.unavailable .sonar-dot { background: var(--hib-navy); }
+  .sonar-dot { flex: none; width: 12px; height: 12px; margin-top: 6px; border-radius: 50%; background: var(--c-border); }
+  .sonar-card.ready { border-left-color: var(--c-accent); } .sonar-card.ready .sonar-dot { background: var(--c-accent); }
+  .sonar-card.starting { border-left-color: var(--c-warn); } .sonar-card.starting .sonar-dot { background: var(--c-warn); animation: pulse 1.2s ease-in-out infinite; }
+  .sonar-card.error, .sonar-card.unavailable { border-left-color: var(--c-error); }
+  .sonar-card.error .sonar-dot, .sonar-card.unavailable .sonar-dot { background: var(--c-error); }
   @keyframes pulse { 50% { opacity: .35; } }
-  :root[data-theme="dark"] .sonar-card { background: rgba(59, 71, 121, .35); }
-  :root[data-theme="dark"] .sonar-card.ready { border-left-color: var(--hib-cyan); }
-  :root[data-theme="dark"] .sonar-card.ready .sonar-dot { background: var(--hib-cyan); }
-  :root[data-theme="dark"] :is(.sonar-card.error, .sonar-card.unavailable) .sonar-dot { background: var(--hib-lavender); }
 </style>
 </head>
 <body>
 <header class="site-header">
-  <a class="brand" href="" aria-label="hiberus · Poda AI">
-    <img class="logo-light" src="/assets/hiberus-logo-navy.svg" alt="hiberus">
-    <img class="logo-dark" src="/assets/hiberus-logo-white.svg" alt="hiberus">
+  <a class="brand" href="" aria-label="Poda AI">
+    <img class="brand-mark" src="/assets/poda-logo.png" alt="">
     <span class="product">Poda AI</span>
   </a>
-  <button class="theme-toggle" id="themeToggle" type="button" aria-pressed="false">
-    <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
-    <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-    <span id="themeLabel">Modo oscuro</span>
-  </button>
+  <span class="byline" aria-label="por NA.">por <img class="logo-light" src="/assets/logo-na.svg" alt="NA."><img class="logo-dark" src="/assets/logo-na-dark.svg" alt="NA."></span>
+  <div class="header-tools">
+    <div class="lang" role="group" aria-label="Idioma / Language">
+      <button type="button" data-lang="en" title="English (UK)" aria-label="English (UK)" aria-pressed="true"><svg viewBox="0 0 60 30" aria-hidden="true"><clipPath id="ukc"><path d="M0 0v30h60V0z"/></clipPath><g clip-path="url(#ukc)"><path d="M0 0v30h60V0z" fill="#012169"/><path d="M0 0l60 30m0-30L0 30" stroke="#fff" stroke-width="6"/><path d="M0 0l60 30m0-30L0 30" stroke="#C8102E" stroke-width="3" clip-path="inset(0)"/><path d="M30 0v30M0 15h60" stroke="#fff" stroke-width="10"/><path d="M30 0v30M0 15h60" stroke="#C8102E" stroke-width="6"/></g></svg></button>
+      <button type="button" data-lang="es" title="Español (España)" aria-label="Español (España)" aria-pressed="false"><svg viewBox="0 0 3 2" aria-hidden="true"><rect width="3" height="2" fill="#AA151B"/><rect y=".5" width="3" height="1" fill="#F1BF00"/></svg></button>
+    </div>
+    <button class="theme-toggle" id="themeToggle" type="button" aria-pressed="false">
+      <svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      <svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+      <span class="sr-only" id="themeLabel">Modo oscuro</span>
+    </button>
+  </div>
 </header>
 <main class="container">
   <section class="hero" aria-labelledby="pageTitle">
@@ -290,14 +237,14 @@
       ni actualizar. El modelo sí se puede cambiar en el paso 2: se aplicará a la próxima limpieza.
     </div>
     <div class="setup" id="setupBanner" role="status" hidden>
-      <strong>Para empezar, configura al menos un proveedor:</strong> LiteLLM (basta con la API key), GitHub Copilot o los dos.
+      <strong>Para empezar, configura al menos un proveedor:</strong> LiteLLM (URL y API key), GitHub Copilot o Claude (con tu plan Pro/Max).
       Después elige el modelo más abajo. No hace falta tocar .env.
     </div>
     <div class="providers">
       <article class="panel">
         <h3>LiteLLM gateway</h3>
         <span class="pf-provider-status" data-provider-status="litellm">Comprobando…</span>
-        <div class="form-row"><label for="litellmUrl">URL del gateway (opcional)</label><input class="field" type="text" id="litellmUrl" placeholder="https://litellm.tu-empresa" autocomplete="off" spellcheck="false"></div>
+        <div class="form-row"><label for="litellmUrl">URL del gateway (obligatoria)</label><input class="field" type="text" id="litellmUrl" placeholder="https://litellm.tu-empresa" autocomplete="off" spellcheck="false"></div>
         <div class="form-row"><label for="litellmKey">API key (obligatoria)</label><input class="field" type="password" id="litellmKey" placeholder="API key" autocomplete="new-password" required aria-required="true"></div>
         <div class="actions">
           <button class="btn btn-primary" id="litellmSave">Guardar</button>
@@ -317,6 +264,17 @@
           <button class="btn btn-ghost" id="copilotLogout">Desconectar</button>
         </div>
         <div class="pf-provider-msg" data-provider-msg="copilot" role="status" aria-live="polite"></div>
+      </article>
+      <article class="panel">
+        <h3>Claude</h3>
+        <span class="pf-provider-status" data-provider-status="claude">Comprobando…</span>
+        <p class="desc">Usa tu plan Pro/Max con el CLI oficial <code>claude</code>. La sesión es propia de Poda AI (independiente de la de tu equipo): inicias sesión con Google o e-mail en la web de Claude y pegas aquí el código. Poda AI nunca ve tu token. Cuenta contra el límite de uso de tu plan y solo verifica fragmentos: no usa el agente.</p>
+        <div class="actions">
+          <button class="btn btn-primary" id="claudeConnect">Iniciar sesión con Claude</button>
+          <button class="btn btn-secondary" data-provider-refresh="claude">Actualizar modelos</button>
+          <button class="btn btn-ghost" id="claudeLogout">Desconectar</button>
+        </div>
+        <div class="pf-provider-msg" data-provider-msg="claude" role="status" aria-live="polite"></div>
       </article>
     </div>
     <div class="step-nav"><button class="btn btn-primary" type="button" data-go="2">Siguiente: elegir el modelo →</button></div>
@@ -412,12 +370,13 @@
     </article>
   </section>
 </main>
-<footer class="site-footer light">
+<footer class="site-footer">
   <div class="container">
-    <span>Poda AI</span>
-    <img src="/assets/hiberus-claim-wearedifferent.svg" alt="#WEAREDIFFERENT">
+    <span>Poda AI · por nalmale</span>
+    <img class="logo-light" src="/assets/logo-na.svg" alt="NA."><img class="logo-dark" src="/assets/logo-na-dark.svg" alt="NA.">
   </div>
 </footer>
+<script src="/assets/i18n.js"></script>
 <script>
 (() => {
   'use strict';
@@ -456,7 +415,7 @@
 
   // Shared state: providers (status, models) and the saved selection.
   const st = { status: {}, models: {}, catalog: {}, selection: { provider: '', model: '', triage_model: '' } };
-  const LABEL = { litellm: 'LiteLLM', copilot: 'GitHub Copilot' };
+  const LABEL = { litellm: 'LiteLLM', copilot: 'GitHub Copilot', claude: 'Claude' };
   const SOURCE_NOTE = { live: '', cache: ' (en caché)', none: '' };
 
   const say = (cls, text, pid) => {
@@ -472,18 +431,22 @@
     if (!s || !el) return;
     const cat = st.catalog[pid];
     const models = cat && s.ready ? ` · ${cat.models.length} modelo(s)${SOURCE_NOTE[cat.source] ?? ''}` : '';
-    const origin = s.source === 'env' ? ' · desde .env' : (s.source === 'dashboard' ? ' · guardado aquí' : (s.source === 'cli' ? ' · sesión de poda login' : ''));
+    const origin = s.source === 'env' ? ' · desde .env' : (s.source === 'dashboard' ? ' · guardado aquí' : (s.source === 'cli' ? (pid === 'claude' ? ' · vía CLI de Claude' : ' · sesión de poda login') : ''));
     el.textContent = `${s.ready ? '✔' : '⚠'} ${s.message || (s.ready ? 'Listo' : 'Sin configurar')}${origin}${models}`;
     el.className = `pf-provider-status ${s.ready ? 'ok' : 'warn'}`;
     if (pid === 'litellm') {
       const url = $('#litellmUrl'), key = $('#litellmKey');
       if (!url.value && s.base_url && s.url_source !== 'default') url.value = s.base_url;
-      url.placeholder = s.default_url ? `${s.default_url} (por defecto)` : 'https://litellm.tu-empresa';
+      url.placeholder = 'https://litellm.tu-empresa';
       key.placeholder = s.api_key_set ? `API key ${s.key_source === 'env' ? 'de .env' : 'guardada'}: déjalo vacío para conservarla` : 'API key';
       $('#litellmClear').disabled = !s.configured;
-    } else {
+    } else if (pid === 'copilot') {
       $('#copilotLogout').disabled = !s.configured;
       $('#copilotConnect').textContent = s.configured ? 'Reconectar con GitHub' : 'Conectar con GitHub';
+    } else if (pid === 'claude') {
+      $('#claudeConnect').textContent = s.configured ? 'Cambiar de cuenta' : 'Iniciar sesión con Claude';
+      $('#claudeConnect').disabled = s.installed === false;
+      $('#claudeLogout').disabled = !s.configured;
     }
     const refresh = document.querySelector(`button[data-provider-refresh="${pid}"]`);
     if (refresh) refresh.disabled = !s.ready;
@@ -492,7 +455,7 @@
 
   // While a cleanup runs, its providers cannot change (the server refuses it too); the model can.
   const PROVIDER_CONTROLS = ['#litellmUrl', '#litellmKey', '#litellmSave', '#litellmClear', '#copilotToken',
-    '#copilotConnect', '#copilotTokenSave', '#copilotLogout'];
+    '#copilotConnect', '#copilotTokenSave', '#copilotLogout', '#claudeConnect', '#claudeLogout'];
   function runActive() {
     try { return !!(run.current && ['starting', 'running'].includes(run.current.status)); } catch { return false; }
   }
@@ -505,7 +468,7 @@
     document.querySelectorAll('button[data-provider-refresh]').forEach(btn => { btn.disabled = true; });
   }
   function releaseProviderLock() {
-    ['#litellmUrl', '#litellmKey', '#litellmSave', '#copilotToken', '#copilotConnect', '#copilotTokenSave']
+    ['#litellmUrl', '#litellmKey', '#litellmSave', '#copilotToken', '#copilotConnect', '#copilotTokenSave', '#claudeConnect']
       .forEach(sel => { const el = $(sel); if (el) el.disabled = false; });
     Object.keys(LABEL).forEach(pid => renderProvider(pid));   // restores Quitar / Desconectar / Actualizar
   }
@@ -680,6 +643,22 @@
   $('#copilotConnect').addEventListener('click', () => openCopilotLogin(async () => {
     await loadStatuses(); await loadModels('copilot', true); await loadSelection();
   }));
+  // Claude: sesión propia de Poda AI. `claude auth login` da una página de inicio de sesión; el código que
+  // muestra se pega aquí. El token nunca llega a esta página.
+  $('#claudeConnect').addEventListener('click', () => openClaudeLogin(async () => {
+    await loadStatuses(); await loadModels('claude', true); await loadSelection();
+  }));
+  $('#claudeLogout').addEventListener('click', (ev) => {
+    if (!confirm('¿Desconectar Claude?\n\nSe cierra la sesión de Claude de Poda AI (la de tu equipo no se toca) y, si el modelo elegido era de Claude, también se quita.')) return;
+    busy(ev.currentTarget, 'claude', async () => {
+      try {
+        delete st.models.claude; delete st.catalog.claude;
+        applyStatuses((await api('POST', '/api/llm/claude/logout', {})).providers);
+        say('done', 'Claude desconectado.', 'claude');
+        await loadSelection();
+      } catch (e) { say('error', `No se pudo desconectar: ${e.message}`, 'claude'); }
+    });
+  });
   $('#copilotTokenSave').addEventListener('click', (ev) => busy(ev.currentTarget, 'copilot', async () => {
     const input = $('#copilotToken');
     const token = input.value.trim();
@@ -771,6 +750,71 @@
     })();
   }
 
+  function openClaudeLogin(onConnected) {
+    document.getElementById('claudeLoginModal')?.remove();
+    const overlay = document.createElement('div');
+    overlay.id = 'claudeLoginModal';
+    overlay.className = 'tm-overlay';
+    overlay.innerHTML = `<div class="tm-dialog" role="dialog" aria-modal="true" aria-label="Conectar Claude">
+      <div class="tm-title">Conectar Claude</div>
+      <ol class="cl-steps"><li>Abre la página de Claude de abajo e inicia sesión (Google o e-mail).</li><li>Autoriza el acceso y copia el código que te muestra.</li><li>Pégalo aquí.</li></ol>
+      <a id="ccUri" class="cl-link" href="#" target="_blank" rel="noopener noreferrer">Preparando el inicio de sesión…</a>
+      <div class="pf-input-row"><input id="ccCode" class="field" type="text" placeholder="Código de Claude" autocomplete="off" spellcheck="false" aria-label="Código de Claude" disabled><button class="btn btn-primary" id="ccSend" disabled>Conectar</button></div>
+      <div class="pf-progress" id="ccStatus" role="status" aria-live="polite">Empezando…</div>
+      <div class="tm-btns"><button class="btn btn-ghost" id="ccClose">Cancelar</button></div>
+    </div>`;
+    document.body.appendChild(overlay);
+    let closed = false, timer = null, flowId = '';
+    const status = overlay.querySelector('#ccStatus');
+    const closeBtn = overlay.querySelector('#ccClose');
+    const code = overlay.querySelector('#ccCode'), send = overlay.querySelector('#ccSend');
+    const close = () => { closed = true; if (timer) clearTimeout(timer); overlay.remove(); };
+    const fail = (msg) => { status.className = 'pf-progress error'; status.textContent = msg; };
+    const connected = (msg) => {
+      status.className = 'pf-progress done'; status.textContent = msg || 'Claude conectado.';
+      closeBtn.textContent = 'Cerrar'; code.disabled = true; send.disabled = true;
+      onConnected(); timer = setTimeout(close, 1500);
+    };
+    closeBtn.addEventListener('click', close);
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+    const submit = async () => {
+      const value = code.value.trim();
+      if (!value || !flowId) return;
+      send.disabled = true; code.disabled = true;
+      status.className = 'pf-progress running'; status.textContent = 'Comprobando el código…';
+      try {
+        const res = await api('POST', '/api/llm/claude/login/code', { flow_id: flowId, code: value });
+        if (closed) return;
+        if (res.status === 'authorized') { connected(res.message); return; }
+        fail(res.message || 'Claude no ha aceptado el código.');
+      } catch (e) { if (!closed) fail(`No se pudo completar la conexión: ${e.message}`); }
+      code.disabled = false; send.disabled = false; code.focus();
+    };
+    send.addEventListener('click', submit);
+    code.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+    (async () => {
+      let flow;
+      try { flow = await api('POST', '/api/llm/claude/login', {}); }
+      catch (e) { fail(`No se pudo iniciar la conexión: ${e.message}`); return; }
+      if (closed) return;
+      flowId = flow.flow_id;
+      const link = overlay.querySelector('#ccUri');
+      link.href = flow.url; link.textContent = 'Abrir el inicio de sesión de Claude';
+      code.disabled = false; send.disabled = false; code.focus();
+      status.className = 'pf-progress running'; status.textContent = 'Esperando el código…';
+      const poll = async () => {   // si el inicio de sesión termina solo (mismo equipo), se detecta aquí
+        if (closed) return;
+        try {
+          const res = await api('POST', '/api/llm/claude/login/poll', { flow_id: flowId });
+          if (closed) return;
+          if (res.status === 'authorized') { connected(res.message); return; }
+        } catch { /* se sigue esperando el código */ }
+        timer = setTimeout(poll, 3000);
+      };
+      timer = setTimeout(poll, 3000);
+    })();
+  }
+
   // ── Paso 3: aplicaciones de target/ y ejecución con progreso en vivo ──
   const PHASES = ['Inventario', 'SonarQube', 'Análisis estático', 'Contexto del proyecto (IA)', 'Verificación (IA)',
     'Descubrimiento (IA)', 'Aplicación de cambios', 'Informes'];
@@ -778,15 +822,15 @@
   const LOG_KINDS = new Set(['header', 'info', 'detail', 'warn', 'error', 'phase_start', 'phase_end', 'phase_skip',
     'finding_summary', 'verdicts', 'removed', 'trimmed', 'tool_call', 'done']);
   const run = { projects: [], selected: '', current: null, since: 0, timer: null, live: null, fileTab: 'poda_report.md' };
-  const fmtInt = (n) => Number(n || 0).toLocaleString('es-ES');
+  const fmtInt = (n) => Number(n || 0).toLocaleString(PodaLang.locale());
   // Big counters fit their tile: 26.058 -> "26,1 k", 1.816.031 -> "1,8 M" (the exact figure goes in the tooltip).
   const fmtCompact = (n) => {
     n = Number(n || 0);
     if (n < 10000) return fmtInt(n);
     const [v, unit] = n >= 1e6 ? [n / 1e6, ' M'] : [n / 1e3, ' k'];
-    return v.toLocaleString('es-ES', { maximumFractionDigits: v < 100 ? 1 : 0 }) + unit;
+    return v.toLocaleString(PodaLang.locale(), { maximumFractionDigits: v < 100 ? 1 : 0 }) + unit;
   };
-  const fmtCost = (usd, digits) => `${Number(usd).toLocaleString('es-ES', { minimumFractionDigits: 2,
+  const fmtCost = (usd, digits) => `${Number(usd).toLocaleString(PodaLang.locale(), { minimumFractionDigits: 2,
     maximumFractionDigits: digits ?? (usd < 1 ? 4 : 2) })} $`;
   const fmtSecs = (s) => { s = Math.max(0, Math.round(s)); return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, '0')} s`; };
 
@@ -851,7 +895,7 @@
 
   $('#runStart').addEventListener('click', async () => {
     if (!run.selected) return;
-    const options = { previous: (document.querySelector('input[name=previous]:checked') || {}).value || 'resume' };
+    const options = { previous: (document.querySelector('input[name=previous]:checked') || {}).value || 'resume', language: PodaLang.output() };
     $('#runStart').disabled = true;
     say('running', `Arrancando la limpieza de ${run.selected}…`, 'run');
     try {
@@ -928,7 +972,7 @@
     const log = $('#log');
     const stick = log.scrollTop + log.clientHeight >= log.scrollHeight - 30;
     const line = document.createElement('div');
-    const time = new Date(ev.ts * 1000).toLocaleTimeString('es-ES');
+    const time = new Date(ev.ts * 1000).toLocaleTimeString(PodaLang.locale());
     line.className = { warn: 'w', error: 'e', phase_end: 'ok', done: 'ok', detail: 'd', tool_call: 'd' }[ev.kind] || '';
     line.textContent = `${time}  ${ev.line.replace(/\n/g, '\n          ')}`;
     log.appendChild(line);

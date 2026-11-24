@@ -4,7 +4,7 @@ FROM python:3.11-slim-bookworm
 
 # curl y unzip: para instalar SonarScanner al construir la imagen.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates curl unzip less nano \
+ && apt-get install -y --no-install-recommends ca-certificates curl unzip less nano nodejs npm \
  && rm -rf /var/lib/apt/lists/*
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
@@ -30,6 +30,10 @@ RUN set -eu; \
     mv /opt/sonar-scanner-${SONAR_SCANNER_VERSION}-${arch} /opt/sonar-scanner; \
     rm -f /tmp/scanner.zip /tmp/scanner.sha256
 ENV PATH="/opt/sonar-scanner/bin:${PATH}"
+
+# Claude Code (CLI oficial): permite usar tu plan Pro/Max como proveedor. Versión fija.
+ARG CLAUDE_CODE_VERSION=2.1.331
+RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} && npm cache clean --force
 
 RUN useradd -m -u 1000 poda \
  && printf '#!/bin/sh\nexec python -m poda "$@"\n' > /usr/local/bin/poda \

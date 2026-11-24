@@ -1,4 +1,4 @@
-"""A poda run: seven phases over one project, reported through the event bus."""
+"""A poda run: eight phases over one project, reported through the event bus."""
 from __future__ import annotations
 
 import asyncio
@@ -354,7 +354,7 @@ class Pipeline:
         self._end(5, f"{counts['remove'] + counts['agente_remove']} eliminar · "
                      f"{counts['keep'] + counts['agente_keep']} conservar · {counts['escalate']} escalados al agente")
 
-        # 5 · discovery
+        # 6 · discovery
         if opts.no_discover:
             self._skip(6, "omitido (--no-discover)")
         elif engine.fatal:

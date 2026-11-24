@@ -13,6 +13,8 @@ services:
     environment:
       # SonarQube de Poda AI (servicio de abajo): Poda AI lo prepara solo (contraseña y token).
       - SONAR_HOST_URL=http://sonarqube:9000
+      # Dirección de SonarQube desde tu navegador (la que muestra  poda dashboard).
+      - PODA_SONAR_PUBLIC_URL=http://127.0.0.1:${PODA_SONAR_PORT:-9001}
     volumes:
       # El código, .env, .copilot/ y .poda-settings/ se leen del propio repositorio.
       - .:/home/poda/workspace

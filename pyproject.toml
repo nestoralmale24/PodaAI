@@ -8,7 +8,8 @@ version = "2.0.0"
 description = "Poda AI: removes dead code (commented-out, unused and unreachable code, unused libraries and dependencies) from legacy applications before documenting or migrating them."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "Proprietary" }
+license = { text = "MIT" }
+authors = [{ name = "nalmale" }]
 dependencies = [
     "litellm==1.106.5",
     "pydantic==2.14.3",

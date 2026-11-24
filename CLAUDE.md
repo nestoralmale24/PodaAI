@@ -21,7 +21,10 @@ python -m poda run <app> -y --plain                # autonomous run with the pro
 python -m poda run <app> --no-llm --dry-run        # free deterministic preview
 python -m poda check --ping                        # provider/model check (one tiny call)
 python -m unittest discover -s tests -v                # tests: fake LLM and fake SonarQube, no network
+python -m unittest tests.test_poda.<Class>.<test_name> -v   # a single test (files: tests/test_poda.py, tests/test_dashboard.py)
 ```
+
+There is no linter or formatter configured in `pyproject.toml`; `tests/fixtures.py` builds the sample projects the tests run against.
 
 **Docker**:
 
@@ -66,6 +69,7 @@ uv pip compile pyproject.toml --universal --python-version 3.11 --generate-hashe
 | `litellm` | `litellm_proxy/<alias>` |
 | `copilot` | local proxy `poda/providers/copilot_proxy.py` via `anthropic/<model>` |
 | `github_copilot` | LiteLLM native provider |
+| `claude` | Claude Pro/Max through the official `claude -p` CLI (`providers/claude_cli.py`: a transport instead of LiteLLM). It has its own session in `CLAUDE_CONFIG_DIR=<settings>/claude`, independent of the computer's login; the dashboard drives `claude auth login` (link + pasted code) and `claude auth logout`. The model list is built by probing `CANDIDATES` with one-word calls (the CLI cannot list models). Poda never touches the OAuth token; no function calling, so no agent escalation |
 | `bedrock` | `bedrock/<id>` |
 | others | passthrough |
 
@@ -82,4 +86,4 @@ uv pip compile pyproject.toml --universal --python-version 3.11 --generate-hashe
 - **Uncertainty**: anything uncertain goes to manual review. Only `remove` with high confidence (or medium, with `--min-confidence medium`) is applied.
 - **Tests**: the LLM is replaced via `PODA_LLM_TRANSPORT=module:function` (`tests/fake_llm.py`), and end-to-end tests run the CLI in a subprocess. No test may reach the network.
 - **Copilot cost**: Copilot bills tokens in GitHub AI Credits at per-model rates that Poda AI cannot read back, so `providers/copilot_pricing.py` holds a copy of GitHub's rate table (`PRICES_AS_OF`, `PRICES_URL`) and `llm_engine` turns each Copilot call into an estimate (`cost_source = "copilot_estimate"`). Update the table when GitHub changes its rates; models it does not list keep `cost = None`.
-- **Language**: console output and reports are in Spanish (English when `OUTPUT_LANGUAGE` starts with "en"); prompts are in English.
+- **Language**: console output and reports are in Spanish (English when `OUTPUT_LANGUAGE` starts with "en"); prompts are in English. The dashboard UI defaults to English (UK) with a Spanish switch (flags in the header): the page source stays Spanish and `dashboard/assets/i18n.js` translates it at runtime (exact dictionary + regex rules, MutationObserver). New UI or server strings need an entry there or they stay Spanish. The chosen language also goes to the run as `OUTPUT_LANGUAGE` (AI output and report); live log lines stay Spanish.

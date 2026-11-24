@@ -1,3 +1,5 @@
+<p align="center"><img src="poda/dashboard/assets/poda-logo.png" alt="Poda AI" width="160"></p>
+
 # Poda AI — tu código legacy, sin peso muerto, listo para migrar
 
 **Poda AI** poda el código muerto de una aplicación legacy antes de documentarla o migrarla. Recibe la aplicación y devuelve:
@@ -33,7 +35,8 @@ Trabaja en tres pasos:
    docker exec -it poda-cli poda dashboard
    ```
 
-   Abre `http://127.0.0.1:8770/` en el navegador. `Ctrl+C` cierra el dashboard.
+   Abre `http://127.0.0.1:8770/` en el navegador. `Ctrl+C` cierra el dashboard. Para visualizar el dashboard de sonar abre en `http://127.0.0.1:9001`, con el usuario admin y la contraseña guardada en `poda-settings/providers.json`.
+
 
 4. Para pararlo todo: `docker compose down`. Los datos de SonarQube se conservan en sus volúmenes.
 
@@ -44,7 +47,7 @@ No hace falta `.env`: todo se configura en el dashboard. Los ajustes opcionales 
 La página va por pestañas, una por paso, y cada una se desbloquea al completar la anterior. Tiene modo claro y oscuro (botón arriba a la derecha; se recuerda en el navegador).
 
 1. **Proveedores de IA** (obligatorio al menos uno):
-   - *LiteLLM gateway*: basta con la **API key**. La URL es opcional; por defecto, `https://litellm.apps.hiberus.tech`.
+   - *LiteLLM gateway*: necesita la **URL** del gateway y la **API key**.
    - *GitHub Copilot*: «Conectar con GitHub» (código de un solo uso) o pegar un token OAuth.
    - Cada proveedor se puede actualizar (lista de modelos), cambiar o quitar, salvo mientras hay una limpieza en marcha: entonces solo se puede cambiar el modelo, que se aplica a la siguiente. Quitar un proveedor es definitivo: se borran la clave o la sesión guardadas, se deja de usar la clave de `.env`, se detiene el proxy de Copilot y, si el modelo elegido era de ese proveedor, también se quita.
 2. **Modelo de IA**: proveedor y modelo principal, y un modelo de triaje opcional, más barato. La página muestra qué se usará.
@@ -55,9 +58,6 @@ La página va por pestañas, una por paso, y cada una se desbloquea al completar
    - «Iniciar limpieza» solo se activa con un proveedor, un modelo y SonarQube listo.
 
 ### Qué hace siempre la limpieza
-
-No hay opciones: cada limpieza es completa y real.
-
 - **Descubrimiento con IA**, siempre. Además de validar lo que encuentran SonarQube y Poda AI, un agente busca lo que ningún análisis ve:
   - funcionalidades desactivadas para siempre: un *flag* o un parámetro de configuración que siempre vale «apagado»;
   - configuración muerta: mappings, *beans* o rutas que apuntan a clases o páginas que ya no existen;
@@ -93,9 +93,6 @@ Al pulsar «Iniciar limpieza», Poda AI recorre ocho fases, siempre en este orde
 8. **Informes.** Escribe el informe, las métricas (tokens, coste, tiempo y líneas antes y después), todos los hallazgos con su veredicto y el registro de la ejecución.
 
 ## SonarQube
-
-`docker compose up` levanta un SonarQube **propio de Poda AI** junto a la herramienta. Es la primera fase de cada limpieza, y sin él no se puede lanzar ninguna.
-
 - **No se comparte con nada**: tiene su propia base de datos PostgreSQL, y sus contenedores, red y volúmenes llevan el prefijo `poda`. Aunque en el equipo haya otro SonarQube (por ejemplo, el de una herramienta de seguridad), no se tocan: el de Poda AI publica su interfaz en el puerto **9001**.
 - **Versión fija** (`26.11.0.134175`): las versiones nuevas pueden cambiar las reglas que traen por defecto, así que solo se cambia a propósito, comprobando antes que sigue detectando el código muerto.
 - **Configuración automática**: la primera vez que está listo, Poda AI cambia la contraseña inicial de `admin` por una aleatoria y crea el token de análisis. Ambos se guardan en `.poda-settings/providers.json` (fuera de git) y nunca se envían al navegador.
@@ -153,14 +150,6 @@ Todo lo de esta tabla lo **valida la IA** antes de eliminarlo; la columna indica
 
 Los comentarios explicativos (cómo funciona algo o por qué está así) no se eliminan, porque son conocimiento útil para documentar. Tampoco se toca el interior de las librerías de terceros.
 
-## Por qué es seguro
-
-- **Nada se elimina sin la IA**, ni siquiera lo que SonarQube o el análisis propio dan por seguro, y solo cuando lo confirma con confianza alta.
-- **La IA nunca edita código**: devuelve veredictos y Poda AI aplica las eliminaciones de forma determinista, sobre una copia.
-- **Se trabaja sobre bytes**: respeta la codificación (cp1252, ISO-8859-1…) y los saltos de línea (CRLF), solo borra líneas completas y comprueba cada ubicación contra el texto real.
-- **Cada fichero editado se valida** y, si queda peor que antes, se revierte.
-- **Lo que la IA no confirma** queda en el informe para revisión manual.
-
 Los prompts están en `poda/prompts/`. Como todo pasa por la IA, también el código comentado evidente, los imports, los miembros privados y la basura, esos hallazgos sencillos van en lotes de 15 por llamada con el modelo de triaje, que es el más barato.
 
 ## Coste
@@ -186,6 +175,8 @@ poda/
 tests/                          pruebas sin red (LLM y SonarQube simulados)
 ```
 
+Cómo está hecho por dentro: [guía de desarrollo](docs/DESARROLLO.md).
+
 ## Pruebas
 
 ```sh
@@ -197,3 +188,7 @@ docker exec -it poda-cli python -m unittest discover -s tests -v
 - **Alcanzabilidad por nombre**: es insensible a mayúsculas, así que un nombre muy común puede hacer que algo muerto parezca vivo. Es conservadora a propósito; una segunda pasada tras limpiar suele encontrar más.
 - **Lenguajes con miembros**: el análisis estático detecta miembros en Java, C#, JavaScript, TypeScript y Python (con tree-sitter) y en Visual Basic (con expresiones regulares). En COBOL, Delphi y otros lenguajes, solo los busca la IA en la fase de descubrimiento.
 - **Usos externos**: lo que llega desde fuera del repositorio (otros sistemas que llaman a una URL, JCL o transacciones definidas fuera) no se puede ver. Esos casos van con confianza baja, y la IA decide con el contexto del proyecto.
+
+## Licencia
+
+[MIT](LICENSE) © 2026 nalmale. Creado y mantenido por [@nestoralmale24](https://github.com/nestoralmale24).

@@ -28,7 +28,7 @@ os.environ.setdefault("LITELLM_LOCAL_MODEL_COST_MAP", "True")
 
 from fixtures import LEGACY_1252, MAIN_SERVLET, build_fixture, class_bytes  # noqa: E402
 
-from poda.config import (DEFAULT_LITELLM_BASE_URL, ConfigError, LLMConfig, default_output_dir,  # noqa: E402
+from poda.config import (ConfigError, LLMConfig, default_output_dir,  # noqa: E402
                          read_dotenv, resolve_llm)
 from poda.pipeline import Pipeline, RunOptions  # noqa: E402
 from poda.core.agent import run_agent  # noqa: E402
@@ -740,18 +740,24 @@ class ConfigAndPolicy(unittest.TestCase):
 
     def test_sample_placeholders_count_as_empty(self):
         # A .env copied from .env.sample does not block anything: placeholders are ignored.
-        llm = resolve_llm({"LLM_PROVIDER": "litellm", "LITELLM_BASE_URL": "https://litellm.example.com",
-                           "LITELLM_API_KEY": "k", "LITELLM_MODEL": "m"})
-        self.assertEqual(llm.api_base, DEFAULT_LITELLM_BASE_URL)
         with self.assertRaises(ConfigError) as ctx:
-            resolve_llm({"LLM_PROVIDER": "litellm", "LITELLM_API_KEY": "sk-REEMPLAZAR-CON-TU-CLAVE", "LITELLM_MODEL": "m"})
+            resolve_llm({"LLM_PROVIDER": "litellm", "LITELLM_BASE_URL": "https://litellm.example.com",
+                         "LITELLM_API_KEY": "k", "LITELLM_MODEL": "m"})
+        self.assertIn("URL", str(ctx.exception))
+        with self.assertRaises(ConfigError) as ctx:
+            resolve_llm({"LLM_PROVIDER": "litellm", "LITELLM_BASE_URL": "https://gw.test",
+                         "LITELLM_API_KEY": "sk-REEMPLAZAR-CON-TU-CLAVE", "LITELLM_MODEL": "m"})
         self.assertIn("API key", str(ctx.exception))
 
-    def test_only_the_api_key_is_required_for_litellm(self):
-        llm = resolve_llm({"LITELLM_API_KEY": "test-key"}, None, "claude-sonnet")
-        self.assertEqual((llm.provider, llm.api_base), ("litellm", DEFAULT_LITELLM_BASE_URL))
+    def test_url_and_api_key_are_required_for_litellm(self):
         with self.assertRaises(ConfigError) as ctx:
-            resolve_llm({"LITELLM_API_KEY": "test-key"})                   # no model yet
+            resolve_llm({"LITELLM_API_KEY": "test-key"}, None, "claude-sonnet")    # no gateway URL
+        self.assertIn("URL", str(ctx.exception))
+        cfg = {"LITELLM_API_KEY": "test-key", "LITELLM_BASE_URL": "https://gw.test"}
+        llm = resolve_llm(cfg, None, "claude-sonnet")
+        self.assertEqual((llm.provider, llm.api_base), ("litellm", "https://gw.test"))
+        with self.assertRaises(ConfigError) as ctx:
+            resolve_llm(cfg)                                               # no model yet
         self.assertIn("poda dashboard", str(ctx.exception))
 
     def test_nothing_configured_points_to_the_dashboard(self):

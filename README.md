@@ -34,13 +34,13 @@ Legacy applications carry years of commented-out code, unused libraries, files n
 
 ## The dashboard
 
-Connect a provider, pick the model, clean an application. Everything is driven from a local web page, in English or Spanish, with light and dark themes. *(Previews of the dashboard.)*
+Connect a provider, pick the model, clean an application. Everything is driven from a local web page, in English or Spanish, with light and dark themes. *(Simulated previews of the dashboard.)*
 
 | 1 · Providers | 2 · Model |
 | :---: | :---: |
-| <img src="docs/assets/dashboard-providers.png" alt="Providers step: LiteLLM, GitHub Copilot and Claude" width="440"> | <img src="docs/assets/dashboard-model.png" alt="Model step: main and triage models" width="440"> |
+| <img src="docs/assets/dashboard-providers.gif" alt="Providers step: LiteLLM, GitHub Copilot and Claude" width="440"> | <img src="docs/assets/dashboard-model.gif" alt="Model step: main and triage models" width="440"> |
 | **3 · Cleanup, live** | **What you get** |
-| <img src="docs/assets/dashboard-cleanup.png" alt="Cleanup step with live phases and log" width="440"> | A clean copy of the app, `poda_report.md`, `findings.json`, `execution_metrics.md` and the full `run.log`. [See the output](#output). |
+| <img src="docs/assets/dashboard-cleanup.gif" alt="Cleanup step with live phases and log" width="440"> | A clean copy of the app, `poda_report.md`, `findings.json`, `execution_metrics.md` and the full `run.log`. [See the output](#output). |
 
 ## Quick start
 

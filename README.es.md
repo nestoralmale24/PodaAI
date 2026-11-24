@@ -1,6 +1,24 @@
-<p align="center"><img src="poda/dashboard/assets/poda-logo.png" alt="Poda AI" width="160"></p>
+<div align="center">
 
-<p align="center"><b>Español</b> · <a href="README.md">English</a> · <a href="https://nestoralmale24.github.io/PodaAI/">Web y demo</a></p>
+<img src="poda/dashboard/assets/poda-logo.png" alt="Poda AI" width="140">
+
+### Elimina el código muerto de aplicaciones legacy, antes de documentarlas o migrarlas
+
+SonarQube lo encuentra, una IA lo confirma y un motor determinista lo elimina en una copia.<br>
+**Tu original nunca se toca.**
+
+[![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-2F6BDB?style=flat-square)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-2F6BDB?style=flat-square&logo=python&logoColor=white)](pyproject.toml)
+[![Docker](https://img.shields.io/badge/funciona%20en-Docker-2F6BDB?style=flat-square&logo=docker&logoColor=white)](docker-compose.yml)
+[![Claude · Copilot · LiteLLM](https://img.shields.io/badge/IA-Claude%20%C2%B7%20Copilot%20%C2%B7%20LiteLLM-C26A00?style=flat-square)](#el-dashboard)
+
+[**Web y demo**](https://nestoralmale24.github.io/PodaAI/?lang=es) · [English](README.md)
+
+</div>
+
+<img src="docs/assets/banner.svg" alt="Poda el código muerto. Conserva la aplicación." width="100%">
+
+<p align="center"><img src="docs/assets/demo.svg" alt="Ejemplo animado: la IA juzga cada línea sospechosa y las muertas se eliminan en una copia" width="860"></p>
 
 # Poda AI — tu código legacy, sin peso muerto, listo para migrar
 

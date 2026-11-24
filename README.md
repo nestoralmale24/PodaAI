@@ -2,7 +2,7 @@
 
 <p align="center"><b>English</b> · <a href="README.es.md">Español</a> · <a href="https://nestoralmale24.github.io/PodaAI/">Website &amp; demo</a></p>
 
-# Poda AI — your legacy code, without the dead weight, ready to migrate
+# Poda AI — your legacy code, without the dead weight, ready to migrate 
 
 **Poda AI** prunes the dead code from a legacy application before you document or migrate it. You give it the application and it returns:
 

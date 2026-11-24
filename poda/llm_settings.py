@@ -32,10 +32,10 @@ from .config import (DEFAULT_LITELLM_BASE_URL, EXAMPLE_MARKERS, PROJECT_ROOT, co
                      normalize_base_url, setting)
 from .providers import copilot_pricing
 
-PROVIDERS = ("litellm", "copilot")
-PROVIDER_LABELS = {"litellm": "LiteLLM gateway", "copilot": "GitHub Copilot"}
+PROVIDERS = ("litellm", "copilot", "claude")
+PROVIDER_LABELS = {"litellm": "LiteLLM gateway", "copilot": "GitHub Copilot", "claude": "Claude"}
 SETTINGS_FILE = "providers.json"
-MODELS_TTL_SECONDS = {"litellm": 600, "copilot": 1800}
+MODELS_TTL_SECONDS = {"litellm": 600, "copilot": 1800, "claude": 1800}
 COPILOT_CLIENT_ID = os.environ.get("COPILOT_CLIENT_ID", "Iv1.b507a08c87ecfe98")
 USER_AGENT = "poda"
 
@@ -396,12 +396,66 @@ def poll_copilot_login(flow_id: str) -> Dict[str, Any]:
     return {"status": flow["status"], "message": flow["message"], "interval": flow["interval"]}
 
 
+# ── Claude (the user's own Pro/Max login, through the official `claude` CLI) ──
+
+_CLAUDE_CACHE: Dict[str, Any] = {"at": 0.0, "value": None}
+
+
+def claude_account(refresh: bool = False) -> Dict[str, Any]:
+    """`claude auth status`, cached for a few seconds (the dashboard polls statuses)."""
+    from .providers import claude_cli
+    with _LOCK:
+        if refresh or _CLAUDE_CACHE["value"] is None or time.time() - _CLAUDE_CACHE["at"] > 10:
+            _CLAUDE_CACHE.update(at=time.time(), value=claude_cli.auth_status())
+        return dict(_CLAUDE_CACHE["value"])
+
+
+def start_claude_login() -> Dict[str, Any]:
+    """`claude auth login` with Poda AI's own session: returns the sign-in page; the user pastes back the code."""
+    from .providers import claude_cli
+    try:
+        return claude_cli.start_login()
+    except RuntimeError as exc:
+        raise LLMSettingsError(str(exc)) from exc
+
+
+def submit_claude_code(flow_id: str, code: str) -> Dict[str, Any]:
+    from .providers import claude_cli
+    result = claude_cli.submit_login_code(flow_id, code)
+    if result.get("status") == "authorized":
+        claude_account(refresh=True)
+        _drop_models_cache("claude")
+    return result
+
+
+def poll_claude_login(flow_id: str) -> Dict[str, Any]:
+    from .providers import claude_cli
+    result = claude_cli.poll_login(flow_id)
+    if result.get("status") == "authorized":
+        claude_account(refresh=True)
+        _drop_models_cache("claude")
+    return result
+
+
+def clear_claude() -> bool:
+    """Close Poda AI's own Claude session and drop the model choice if it was a Claude one."""
+    from .providers import claude_cli
+    removed = claude_account(refresh=True)["logged_in"]
+    claude_cli.logout()
+    claude_account(refresh=True)
+    _drop_models_cache("claude")
+    _drop_selection_of("claude")
+    return removed
+
+
 # ── model catalogues (cached per credentials) ────────────────────────────────
 
 def _identity(pid: str) -> str:
     if pid == "litellm":
         c = litellm_config()
         seed = f"{c['base_url']}\0{c['api_key']}"
+    elif pid == "claude":
+        seed = "claude:" + claude_account()["account"]
     else:
         seed = copilot_config()["token"]
     return hashlib.sha256(seed.encode("utf-8")).hexdigest()[:16]
@@ -464,6 +518,11 @@ def provider_models(pid: str, refresh: bool = False) -> Dict[str, Any]:
         if pid == "litellm":
             c = litellm_config()
             models = _fetch_litellm_models(c["base_url"], c["api_key"])
+        elif pid == "claude":
+            from .providers import claude_cli
+            models = claude_cli.available_models()
+            if not models:
+                raise LLMSettingsError("Tu cuenta de Claude no ha respondido con ningún modelo: revisa tu plan o tu límite de uso.")
         else:
             models = _fetch_copilot_models()
     except LLMSettingsError as exc:
@@ -485,6 +544,11 @@ def provider_errors(pid: str) -> List[str]:
         return litellm_errors(c["base_url"], c["api_key"])
     if pid == "copilot":
         return [] if copilot_config()["token"] else ["No hay sesión de GitHub Copilot: conéctala con GitHub."]
+    if pid == "claude":
+        acc = claude_account()
+        if not acc["installed"]:
+            return ["No se encuentra el comando `claude`: instala Claude Code."]
+        return [] if acc["logged_in"] else ["Sin sesión de Claude: inicia sesión."]
     return [f"Proveedor desconocido: {pid}"]
 
 
@@ -498,6 +562,13 @@ def provider_status() -> List[Dict[str, Any]]:
         cop_message = f"Conectado como {cop['account']}" if cop["account"] else "Conectado"
     else:
         cop_message = "Sin conectar: conecta con GitHub o pega un token."
+    claude = claude_account()
+    if not claude["installed"]:
+        claude_message = "Falta el comando `claude`: instala Claude Code."
+    elif claude["logged_in"]:
+        claude_message = f"Conectado como {claude['account']}" if claude["account"] else "Conectado"
+    else:
+        claude_message = "Sin conectar: inicia sesión con Claude (Google o e-mail)."
     return [
         {"provider": "litellm", "label": PROVIDER_LABELS["litellm"],
          "configured": bool(lite["base_url"] and lite["api_key"]), "ready": not lite_errors,
@@ -508,6 +579,9 @@ def provider_status() -> List[Dict[str, Any]]:
         {"provider": "copilot", "label": PROVIDER_LABELS["copilot"], "configured": bool(cop["token"]),
          "ready": bool(cop["token"]), "source": "dashboard" if cop["method"] in ("device", "token") else
          ("cli" if cop["token"] else ""), "account": cop["account"], "message": cop_message},
+        {"provider": "claude", "label": PROVIDER_LABELS["claude"], "configured": claude["logged_in"],
+         "ready": claude["installed"] and claude["logged_in"], "installed": claude["installed"],
+         "account": claude["account"], "source": "cli" if claude["logged_in"] else "", "message": claude_message},
     ]
 
 
@@ -522,7 +596,7 @@ def selection() -> Dict[str, str]:
 def save_selection(provider: str, model: str, triage_model: str = "") -> Dict[str, str]:
     pid = str(provider or "").strip().lower()
     if pid not in PROVIDERS:
-        raise LLMSettingsError(f"Proveedor desconocido: {provider!r}. Usa litellm o copilot.")
+        raise LLMSettingsError(f"Proveedor desconocido: {provider!r}. Usa litellm, copilot o claude.")
     model, triage_model = str(model or "").strip(), str(triage_model or "").strip()
     if not model:
         raise LLMSettingsError("Elige un modelo.")
@@ -565,7 +639,7 @@ def overlay(cfg: Dict[str, str]) -> Dict[str, str]:
     pid, model = str(sel.get("provider") or ""), str(sel.get("model") or "")
     if pid in PROVIDERS and model:
         cfg["LLM_PROVIDER"] = pid
-        cfg["LITELLM_MODEL" if pid == "litellm" else "COPILOT_MODEL"] = model
+        cfg[{"litellm": "LITELLM_MODEL", "copilot": "COPILOT_MODEL", "claude": "CLAUDE_MODEL"}[pid]] = model
         cfg["PODA_TRIAGE_MODEL"] = str(sel.get("triage_model") or model)
         cfg["PODA_SELECTION_SOURCE"] = "dashboard"
     sonar = data.get("sonar") if isinstance(data.get("sonar"), dict) else {}

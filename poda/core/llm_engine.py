@@ -147,7 +147,11 @@ class LLMEngine:
         self.price_in, self.price_out = price_in, price_out
         self.language = language
         spec = os.environ.get("PODA_LLM_TRANSPORT")
-        self.transport: Transport = transport or (load_transport(spec) if spec else litellm.acompletion)
+        default: Transport = litellm.acompletion
+        if cfg.provider == "claude":  # the user's own Claude login, through the official CLI (no LiteLLM)
+            from ..providers import claude_cli
+            default = claude_cli.acompletion
+        self.transport: Transport = transport or (load_transport(spec) if spec else default)
         self.fatal: Optional[str] = None
         self.cancel: Optional[threading.Event] = None
         self.cache_path = cache_path
@@ -165,6 +169,8 @@ class LLMEngine:
     def tools_supported(self, model: Optional[str] = None) -> bool:
         if self._tools_enabled is not None:
             return self._tools_enabled
+        if self.cfg.provider == "claude":
+            return False  # `claude -p` has no OpenAI-style function calling: snippet verification only
         if self.cfg.provider in ("litellm", "copilot", "github_copilot"):
             return True  # gateway aliases are unknown to LiteLLM's capability table
         try:
@@ -173,6 +179,8 @@ class LLMEngine:
             return True
 
     def _schema_supported(self, model: str) -> bool:
+        if self.cfg.provider == "claude":
+            return True  # the transport turns response_format into `--json-schema`
         if model not in self._schema_ok:
             try:
                 self._schema_ok[model] = bool(self._litellm.supports_response_schema(model=model))
@@ -305,6 +313,8 @@ class LLMEngine:
     def _cost(self, response: Any, prompt: int, completion: int, cached: int = 0, model: str = ""):
         if self.price_in is not None and self.price_out is not None:
             return round(prompt / 1e6 * self.price_in + completion / 1e6 * self.price_out, 8), "price_table"
+        if self.cfg.provider == "claude":
+            return None, "claude_subscription"  # plan usage, not billed per token
         if self.cfg.provider in ("copilot", "github_copilot"):
             # GitHub AI Credits: tokens at GitHub's published rate for the model (an estimate).
             usd = copilot_pricing.estimate(model or self.cfg.model, prompt, completion, cached)

@@ -39,7 +39,7 @@ class AgentMode(str, Enum):
 
 
 PROVIDER_HELP = ("litellm (gateway corporativo) · copilot (proxy local) · github_copilot (LiteLLM nativo) · "
-                 "bedrock · anthropic · openai · azure · gemini · cualquier proveedor de LiteLLM")
+                 "claude (CLI oficial) · bedrock · anthropic · openai · azure · gemini · cualquier proveedor de LiteLLM")
 
 
 def _version(value: bool) -> None:
@@ -70,6 +70,9 @@ def list_models(cfg, llm_provider: str) -> List[str]:
         if out.returncode != 0:
             raise ConfigError(out.stderr.strip() or "no se pudo obtener la lista de modelos de Copilot")
         return [line.strip() for line in out.stdout.splitlines() if line.strip()]
+    if provider == "claude":
+        from .providers.claude_cli import CANDIDATES
+        return list(CANDIDATES)
     import litellm
     return sorted(litellm.models_by_provider.get(provider, []))
 
@@ -296,8 +299,14 @@ def dashboard(
     except OSError as exc:
         console.print(f"[red]✗ No se pudo abrir el puerto {port}: {exc}[/red]")
         raise typer.Exit(2)
-    console.print(Panel.fit(f"[bold]{server.url}[/bold]\n\nÁbrela en el navegador.\n"
-                            "Ctrl+C para cerrar.", title="Poda AI · dashboard", border_style="cyan"))
+    cfg = load_env(dashboard=False)
+    sonar = ""
+    if (cfg.get("SONAR_HOST_URL") or "").strip():
+        # Inside Docker SONAR_HOST_URL is the internal name (http://sonarqube:9000): show the host's address.
+        sonar = cfg.get("PODA_SONAR_PUBLIC_URL") or ("http://127.0.0.1:9001" if in_container else cfg["SONAR_HOST_URL"])
+    lines = f"[bold]Poda AI[/bold]    {server.url}" + (f"\n[bold]SonarQube[/bold]  {sonar}" if sonar else "")
+    console.print(Panel.fit(f"{lines}\n\nÁbrelas en el navegador.\nCtrl+C para cerrar.",
+                            title="Poda AI · dashboard", border_style="cyan"))
     if open_browser and host in ("127.0.0.1", "localhost"):
         webbrowser.open(server.url)
     try:

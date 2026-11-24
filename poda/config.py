@@ -9,6 +9,7 @@ Every provider ends up as a LiteLLM model string plus optional api_base/api_key:
     litellm         corporate LiteLLM gateway   → litellm_proxy/<alias>  (LITELLM_BASE_URL, LITELLM_API_KEY)
     copilot         local Copilot proxy         → anthropic/<model>      (poda/providers/copilot_proxy.py)
     github_copilot  LiteLLM native provider     → github_copilot/<model> (device flow handled by LiteLLM)
+    claude          Claude Pro/Max login   → claude/<alias>         (official `claude` CLI, poda/providers/claude_cli.py)
     bedrock         AWS Bedrock                 → bedrock/<model id or ARN> (AWS_REGION, AWS credentials)
     anthropic       Anthropic API               → anthropic/<model>      (ANTHROPIC_API_KEY)
     <other>         any LiteLLM provider        → <provider>/<model>     (openai, azure, gemini, vertex_ai...)
@@ -51,8 +52,8 @@ def default_output_dir(project: Path) -> Path:
 
 EXAMPLE_MARKERS = ("REEMPLAZAR", "example.com", "example.org")
 # Gateway LiteLLM que se usa si no se indica otro (dashboard, LITELLM_BASE_URL o --api-base).
-DEFAULT_LITELLM_BASE_URL = os.environ.get("PODA_DEFAULT_LITELLM_URL") or "https://litellm.apps.hiberus.tech"
-SETUP_HINT = "Abre  poda dashboard  y configura LiteLLM (basta con la API key) o GitHub Copilot."
+DEFAULT_LITELLM_BASE_URL = os.environ.get("PODA_DEFAULT_LITELLM_URL") or ""
+SETUP_HINT = "Abre  poda dashboard  y configura LiteLLM (URL y API key), GitHub Copilot o Claude."
 
 
 class ConfigError(RuntimeError):
@@ -186,6 +187,8 @@ def resolve_llm(cfg: Dict[str, str], cli_provider: Optional[str] = None, cli_mod
     explicit_model = cli_model
     if provider == "litellm":
         base = normalize_base_url(cli_api_base or setting(cfg, "LITELLM_BASE_URL") or DEFAULT_LITELLM_BASE_URL)
+        if not base:
+            raise ConfigError("Falta la URL del gateway LiteLLM (LITELLM_BASE_URL). Indícala en  poda dashboard  o en .env.")
         if "#" in base:
             raise ConfigError("La URL del gateway contiene '#': parece la URL de un portal web, no de la API.")
         key = _check(setting(cfg, "LITELLM_API_KEY"), "la API key de LiteLLM (LITELLM_API_KEY), que es obligatoria",
@@ -202,6 +205,12 @@ def resolve_llm(cfg: Dict[str, str], cli_provider: Optional[str] = None, cli_mod
         base, key = ensure_copilot_proxy(cfg) if start_proxy else ("http://127.0.0.1", "")
         return LLMConfig("copilot", _qualify("copilot", model), _qualify("copilot", triage), base, key,
                          display=f"GitHub Copilot (proxy local) · {model}")
+    if provider == "claude":
+        model = _check(explicit_model or setting(cfg, "CLAUDE_MODEL"), "el modelo de Claude",
+                       "Elígelo en  poda dashboard  (sonnet, opus o haiku).")
+        triage = cli_triage or setting(cfg, "PODA_TRIAGE_MODEL") or model
+        return LLMConfig("claude", _qualify("claude", model), _qualify("claude", triage),
+                         display=f"Claude (vía CLI) · {model}")
     if provider == "bedrock":
         model = _check(explicit_model or cfg.get("ANTHROPIC_MODEL"), "ANTHROPIC_MODEL",
                        "Pon el id o ARN del modelo de Bedrock en .env o en --model.")

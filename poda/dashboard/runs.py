@@ -159,7 +159,11 @@ class RunManager:
                       out_dir=str(out), llm=llm.display if llm else "sin IA")
             bus = EventBus()
             bus.subscribe(lambda ev: self._collect(run, ev))
-            run.pipeline = Pipeline(opts, bus, load_env(), llm)
+            cfg = load_env()
+            language = str(options.get("language") or "").strip().lower()
+            if language in ("english", "spanish"):  # the page's language: AI output and report
+                cfg["OUTPUT_LANGUAGE"] = language.capitalize()
+            run.pipeline = Pipeline(opts, bus, cfg, llm)
             self.current = run
         threading.Thread(target=self._execute, args=(run,), daemon=True, name=f"poda-{run.id}").start()
         return run

@@ -16,6 +16,7 @@ from ..utils.metrics import LOC_SCOPE, MetricsTracker, not_counted_text
 SOURCE_LABEL = {
     "litellm": "tabla de precios de LiteLLM", "gateway": "coste devuelto por el gateway LiteLLM",
     "litellm_key_spend": "gasto de la clave en el gateway LiteLLM", "price_table": "tarifas --price-in/--price-out",
+    "claude_subscription": "plan de Claude (sin coste por token)",
     "copilot_subscription": "GitHub Copilot, sin tarifa publicada para el modelo",
     "copilot_estimate": "estimación con las tarifas de GitHub Copilot", "unknown": "desconocido",
 }
@@ -55,6 +56,8 @@ def build_metrics(tracker: MetricsTracker, *, project: str, llm: Optional[Dict[s
     elif copilot and summary["calls"] and source in (None, "copilot_subscription"):
         cost, note = None, ("GitHub Copilot no publica tarifa para este modelo: consulta el consumo de créditos "
                             "en tu cuenta de GitHub")
+    elif provider == "claude" and summary["calls"]:
+        cost, note = None, "Claude se usa con tu plan (Pro/Max): no hay coste por token, cuenta contra su límite de uso"
     elif cost is None and summary["calls"]:
         note = ("El proveedor no devolvió coste y LiteLLM no conoce este modelo: usa --price-in/--price-out "
                 "(USD por millón de tokens) para estimarlo")

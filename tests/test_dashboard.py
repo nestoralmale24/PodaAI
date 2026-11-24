@@ -113,7 +113,7 @@ class Dashboard(unittest.TestCase):
             headers["Content-Type"] = "application/json"
         conn.request(method, path, body=data, headers=headers)
         response = conn.getresponse()
-        text = response.read().decode("utf-8")
+        text = response.read().decode("utf-8", errors="replace")
         set_cookie = response.getheader("Set-Cookie")
         conn.close()
         try:
@@ -138,21 +138,19 @@ class Dashboard(unittest.TestCase):
         self.assertEqual(self.call("GET", "/api/llm/providers", token="wrong")[0], 401)
         self.assertEqual(self.call("GET", "/api/llm/providers", host="evil.example:80")[0], 421)  # DNS rebinding
         self.assertEqual(self.call("POST", "/api/llm/litellm", raw=b"not json")[0], 400)
-        # hiberus brand assets are public (no secrets); anything else under /assets is not served
-        status, logo = self.call("GET", "/assets/hiberus-logo-navy.svg", token=None)
+        # NA. brand assets are public (no secrets); anything else under /assets is not served
+        status, logo = self.call("GET", "/assets/logo-na.svg", token=None)
         self.assertEqual(status, 200)
         self.assertIn("<svg", logo)
-        self.assertIn("--hib-blue:#0035F3", self.call("GET", "/assets/tokens.css", token=None)[1])
+        self.assertIn("--na-blue:#2F6BDB", self.call("GET", "/assets/na.css", token=None)[1])
         for path in ("/assets/../server.py", "/assets/index.html", "/assets/nope.svg"):
             self.assertEqual(self.call("GET", path, token=None)[0], 404, path)
-        self.assertIn('href="/assets/tokens.css"', page)
-        self.assertIn('src="/assets/hiberus-logo-navy.svg" alt="hiberus"', page)
-        self.assertIn('rel="icon" type="image/svg+xml" href="/assets/favicon.svg"', page)
-        status, icon = self.call("GET", "/assets/favicon.svg", token=None)
-        self.assertEqual(status, 200)
-        self.assertIn(">Poda AI</text>", icon)
+        self.assertIn('href="/assets/na.css"', page)
+        self.assertIn('src="/assets/logo-na.svg" alt="NA."', page)
+        self.assertIn('rel="icon" type="image/png" href="/assets/poda-favicon.png"', page)
+        self.assertEqual(self.call("GET", "/assets/poda-logo.png", token=None)[0], 200)
         self.assertIn('id="themeToggle"', page)                              # dark mode switch
-        self.assertIn('src="/assets/hiberus-logo-white.svg"', page)
+        self.assertIn('src="/assets/logo-na-dark.svg"', page)
         self.assertEqual(self.call("GET", "/assets/chevron-light.svg", token=None)[0], 200)
 
     def test_litellm_gateway_and_model_selection(self):
@@ -234,15 +232,16 @@ class Dashboard(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertFalse(any(p["ready"] for p in data["providers"]))         # nothing configured yet
         lite = next(p for p in data["providers"] if p["provider"] == "litellm")
-        self.assertEqual((lite["url_source"], lite["base_url"]), ("default", lite["default_url"]))
-        self.assertIn("API key", lite["message"])
+        self.assertEqual(lite["base_url"], "")
+        self.assertIn("URL", lite["message"])
         status, data = self.call("POST", "/api/llm/litellm", {"base_url": "", "api_key": ""})
-        self.assertEqual(status, 400)                                         # the key is mandatory
+        self.assertEqual(status, 400)                                         # URL and key are mandatory
         status, data = self.call("POST", "/api/llm/litellm", {"base_url": "", "api_key": GATEWAY_KEY})
-        self.assertEqual(status, 200, data)                                   # URL optional: default gateway
+        self.assertEqual(status, 400)                                         # no URL: nothing to connect to
+        status, data = self.call("POST", "/api/llm/litellm", {"base_url": self.gateway, "api_key": GATEWAY_KEY})
+        self.assertEqual(status, 200, data)
         lite = next(p for p in data["providers"] if p["provider"] == "litellm")
         self.assertTrue(lite["ready"])
-        self.assertEqual(lite["url_source"], "default")
         effective = self.call("GET", "/api/config/model")[1]["effective"]
         self.assertFalse(effective["ok"])                                     # model still to choose
         self.assertIn("poda dashboard", effective["error"])

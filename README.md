@@ -1,3 +1,5 @@
+<p align="center"><img src="poda/dashboard/assets/poda-logo.png" alt="Poda AI" width="160"></p>
+
 # Poda AI — tu código legacy, sin peso muerto, listo para migrar
 
 **Poda AI** poda el código muerto de una aplicación legacy antes de documentarla o migrarla. Recibe la aplicación y devuelve:
@@ -45,7 +47,7 @@ No hace falta `.env`: todo se configura en el dashboard. Los ajustes opcionales 
 La página va por pestañas, una por paso, y cada una se desbloquea al completar la anterior. Tiene modo claro y oscuro (botón arriba a la derecha; se recuerda en el navegador).
 
 1. **Proveedores de IA** (obligatorio al menos uno):
-   - *LiteLLM gateway*: basta con la **API key**. La URL es opcional; por defecto, `https://litellm.apps.hiberus.tech`.
+   - *LiteLLM gateway*: necesita la **URL** del gateway y la **API key**.
    - *GitHub Copilot*: «Conectar con GitHub» (código de un solo uso) o pegar un token OAuth.
    - Cada proveedor se puede actualizar (lista de modelos), cambiar o quitar, salvo mientras hay una limpieza en marcha: entonces solo se puede cambiar el modelo, que se aplica a la siguiente. Quitar un proveedor es definitivo: se borran la clave o la sesión guardadas, se deja de usar la clave de `.env`, se detiene el proxy de Copilot y, si el modelo elegido era de ese proveedor, también se quita.
 2. **Modelo de IA**: proveedor y modelo principal, y un modelo de triaje opcional, más barato. La página muestra qué se usará.
@@ -186,3 +188,7 @@ docker exec -it poda-cli python -m unittest discover -s tests -v
 - **Alcanzabilidad por nombre**: es insensible a mayúsculas, así que un nombre muy común puede hacer que algo muerto parezca vivo. Es conservadora a propósito; una segunda pasada tras limpiar suele encontrar más.
 - **Lenguajes con miembros**: el análisis estático detecta miembros en Java, C#, JavaScript, TypeScript y Python (con tree-sitter) y en Visual Basic (con expresiones regulares). En COBOL, Delphi y otros lenguajes, solo los busca la IA en la fase de descubrimiento.
 - **Usos externos**: lo que llega desde fuera del repositorio (otros sistemas que llaman a una URL, JCL o transacciones definidas fuera) no se puede ver. Esos casos van con confianza baja, y la IA decide con el contexto del proyecto.
+
+## Licencia
+
+[MIT](LICENSE) © 2026 nalmale. Creado y mantenido por [@nestoralmale24](https://github.com/nestoralmale24).

@@ -26,7 +26,7 @@ from . import runs
 
 PAGE = Path(__file__).resolve().parent / "index.html"
 ASSETS = Path(__file__).resolve().parent / "assets"
-ASSET_TYPES = {".svg": "image/svg+xml", ".css": "text/css; charset=utf-8"}
+ASSET_TYPES = {".svg": "image/svg+xml", ".css": "text/css; charset=utf-8", ".png": "image/png", ".js": "text/javascript; charset=utf-8"}
 MAX_BODY = 64 * 1024
 SESSION_COOKIE = "poda_session"
 LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "[::1]", "::1"}
@@ -135,7 +135,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send(200, PAGE.read_bytes(), "text/html; charset=utf-8", extra_headers={"Set-Cookie": cookie})
             return
         if method == "GET" and parts.path.startswith("/assets/"):
-            # Brand assets (logos, tokens.css): public, no secrets, whitelisted names only.
+            # Brand assets (logos, na.css): public, no secrets, whitelisted names only.
             name = parts.path[len("/assets/"):]
             asset = ASSETS / name
             if "/" in name or asset.suffix not in ASSET_TYPES or not asset.is_file():
@@ -229,6 +229,36 @@ def api_copilot_poll(body, query) -> Result:
     return {"ok": result.get("status") not in ("error", "unknown"), **result}, 200
 
 
+def api_claude_login(body, query) -> Result:
+    if _locked():
+        return _locked()
+    return {"ok": True, **ls.start_claude_login()}, 200
+
+
+def api_claude_code(body, query) -> Result:
+    if _locked():
+        return _locked()
+    result = ls.submit_claude_code(str(body.get("flow_id") or ""), str(body.get("code") or ""))
+    return {"ok": result.get("status") in ("authorized", "pending", "retry"), **result}, 200
+
+
+def api_claude_poll(body, query) -> Result:
+    result = ls.poll_claude_login(str(body.get("flow_id") or ""))
+    return {"ok": result.get("status") not in ("error", "unknown"), **result}, 200
+
+
+def api_claude_logout(body, query) -> Result:
+    if _locked():
+        return _locked()
+    removed = ls.clear_claude()
+    return {**_status(), "removed": removed}, 200
+
+
+def api_claude_status(body, query) -> Result:
+    ls.claude_account(refresh=True)
+    return _status(), 200
+
+
 def api_copilot_token(body, query) -> Result:
     if _locked():
         return _locked()
@@ -304,6 +334,11 @@ ROUTES: Tuple[Tuple[str, str, Callable[..., Result]], ...] = (
     ("GET", r"/api/llm/providers/([a-z_]+)/models", api_models),
     ("POST", r"/api/llm/copilot/login", api_copilot_login),
     ("POST", r"/api/llm/copilot/login/poll", api_copilot_poll),
+    ("POST", r"/api/llm/claude/login", api_claude_login),
+    ("POST", r"/api/llm/claude/login/code", api_claude_code),
+    ("POST", r"/api/llm/claude/login/poll", api_claude_poll),
+    ("POST", r"/api/llm/claude/logout", api_claude_logout),
+    ("POST", r"/api/llm/claude/status", api_claude_status),
     ("POST", r"/api/llm/copilot/token", api_copilot_token),
     ("POST", r"/api/llm/copilot/logout", api_copilot_logout),
     ("GET", r"/api/config/model", api_model_get),

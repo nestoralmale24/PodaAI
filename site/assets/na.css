@@ -1,0 +1,89 @@
+/* NA. · tokens y base (sistema de diseño personal). Los componentes usan solo tokens --c-*. */
+:root{
+  --na-void:#05070C;--na-ink:#0D1B2A;--na-ink-2:#1A2636;--na-slate:#475260;--na-mist:#A3ADC1;
+  --na-star:#F3F7FD;--na-silver:#D9E0ED;--na-blue:#2F6BDB;--na-blue-hi:#5B8CFF;
+  --na-ember:#C8321F;--na-ember-hi:#E0503A;--na-dot:#C26A00;
+  --na-ring:linear-gradient(100deg,#F3F7FD 0%,#5B8CFF 40%,#2F6BDB 62%,#C8321F 100%);
+  --font:system-ui,-apple-system,"SF Pro Text","Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Mono",Consolas,monospace;
+  --sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-5:24px;--sp-6:32px;--sp-7:48px;--sp-8:64px;--sp-9:96px;
+  --r-sm:10px;--r:16px;--r-lg:24px;--r-pill:999px;
+  --ease-out:cubic-bezier(.22,1,.36,1);
+  color-scheme:light;
+  --c-page:var(--na-star);--c-surface:#fff;--c-sunken:#EAEFF7;--c-text:var(--na-ink);--c-muted:var(--na-slate);
+  --c-border:#C6CBD3;--c-divider:var(--na-silver);--c-accent:var(--na-blue);--c-accent-hover:#2559BD;
+  --c-on-accent:#fff;--c-error:var(--na-ember);--c-warn:#B8651A;--c-brand:var(--na-dot);
+  --c-shadow:0 1px 2px rgba(13,27,42,.06),0 8px 24px rgba(13,27,42,.08);
+  --c-shadow-hi:0 2px 4px rgba(13,27,42,.08),0 16px 40px rgba(13,27,42,.14);
+  --c-glass:rgba(243,247,253,.72);--c-glass-edge:rgba(255,255,255,.6);
+  --c-focus:0 0 0 3px rgba(47,107,219,.40);
+  --c-veil:rgba(5,7,12,.55);--c-accent-soft:rgba(47,107,219,.14);--c-error-soft:rgba(200,50,31,.10);
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --c-page:var(--na-void);--c-surface:var(--na-ink);--c-sunken:var(--na-ink-2);--c-text:var(--na-star);--c-muted:var(--na-mist);
+  --c-border:#3A475F;--c-divider:rgba(217,224,237,.10);--c-accent:var(--na-blue-hi);--c-accent-hover:#7FA5FF;
+  --c-on-accent:var(--na-void);--c-error:var(--na-ember-hi);--c-warn:var(--na-dot);--c-brand:var(--na-dot);
+  --c-shadow:0 0 0 1px rgba(217,224,237,.08);
+  --c-shadow-hi:0 0 0 1px rgba(91,140,255,.25),0 16px 40px rgba(0,0,0,.5);
+  --c-glass:rgba(13,27,42,.62);--c-glass-edge:rgba(217,224,237,.10);
+  --c-focus:0 0 0 3px rgba(91,140,255,.55);
+  --c-accent-soft:rgba(91,140,255,.18);--c-error-soft:rgba(224,80,58,.14);
+}
+*{box-sizing:border-box}
+body{margin:0;font:400 1rem/1.55 var(--font);color:var(--c-text);background:var(--c-page);-webkit-font-smoothing:antialiased;
+  transition:background-color .2s ease,color .2s ease}
+h1,h2,h3{line-height:1.1;margin:0 0 .5em;font-weight:700}
+h1{font-size:clamp(2.25rem,5vw,4rem);font-weight:800;letter-spacing:-.03em;line-height:1.02}
+h2{font-size:clamp(1.5rem,2.8vw,2.25rem);letter-spacing:-.02em}
+h3{font-size:1.25rem;letter-spacing:-.01em}
+.eyebrow{font-size:.75rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--c-accent);margin:0 0 var(--sp-3)}
+.lead{font-size:1.2rem;color:var(--c-muted)}
+.muted{color:var(--c-muted)}
+a{color:var(--c-accent)} a:hover{color:var(--c-accent-hover)}
+:focus-visible{outline:none;box-shadow:var(--c-focus);border-radius:var(--r-sm)}
+.container{max-width:1200px;margin-inline:auto;padding-inline:var(--sp-5)}
+
+/* Botones */
+.btn{font:600 1rem/1 var(--font);border-radius:var(--r-pill);padding:12px 22px;min-height:44px;display:inline-flex;align-items:center;gap:10px;
+  border:1.5px solid transparent;cursor:pointer;text-decoration:none;transition:background-color .2s ease,border-color .2s ease,color .2s ease,transform .1s var(--ease-out)}
+.btn:active:not(:disabled){transform:scale(.97)}
+.btn-primary{background:var(--c-accent);color:var(--c-on-accent)}
+.btn-primary:hover:not(:disabled){background:var(--c-accent-hover);color:var(--c-on-accent)}
+.btn-secondary{background:transparent;color:var(--c-accent);border-color:var(--c-accent)}
+.btn-secondary:hover:not(:disabled){background:var(--c-accent);color:var(--c-on-accent)}
+.btn-ghost{background:transparent;color:var(--c-muted);border-color:var(--c-border)}
+.btn-ghost:hover:not(:disabled){border-color:var(--c-text);color:var(--c-text)}
+.btn-danger{background:var(--c-error);color:#fff}
+
+/* Hero: anillo de luz sobre el espacio */
+.hero{position:relative;overflow:hidden;isolation:isolate;background:var(--na-void);color:var(--na-star);border-radius:var(--r-lg);padding:var(--sp-6) var(--sp-7)}
+.hero::before{content:"";position:absolute;z-index:-1;left:50%;top:84%;width:70%;aspect-ratio:3/1;transform:translateX(-50%);border-radius:50%;
+  border-top:3px solid transparent;background:radial-gradient(ellipse at 50% 0,rgba(91,140,255,.22),transparent 60%) padding-box,var(--na-ring) border-box;
+  filter:blur(.5px);box-shadow:0 -10px 36px rgba(91,140,255,.22)}
+.hero::after{content:"";position:absolute;inset:0;z-index:-1;opacity:.5;pointer-events:none;
+  background:radial-gradient(1px 1px at 12% 22%,#F3F7FD 50%,transparent),radial-gradient(1px 1px at 38% 12%,#F3F7FD 50%,transparent),
+  radial-gradient(1px 1px at 71% 28%,#F3F7FD 50%,transparent),radial-gradient(1px 1px at 88% 14%,#F3F7FD 50%,transparent),
+  radial-gradient(1px 1px at 55% 40%,#F3F7FD 50%,transparent),radial-gradient(1px 1px at 24% 46%,#F3F7FD 50%,transparent)}
+.hero h1{color:var(--na-star);font-size:clamp(1.6rem,3.2vw,2.25rem);margin-bottom:var(--sp-2)} .hero .lead{color:var(--na-silver);max-width:60ch;font-size:1rem}
+.hero .eyebrow{color:var(--na-blue-hi)}
+
+/* Banda de KPIs */
+.kpi-band{background:var(--na-ink);color:var(--na-star);border-radius:var(--r-lg);padding:var(--sp-6);display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--sp-6)}
+:root[data-theme="dark"] .kpi-band{background:var(--na-ink-2)}
+.kpi .num{font-weight:800;font-size:clamp(1.75rem,3vw,2.5rem);letter-spacing:-.02em;line-height:1;color:var(--na-star);font-variant-numeric:tabular-nums}
+.kpi .label{font-size:.9rem;color:var(--na-mist);margin-top:6px}
+
+/* Campos */
+.field{border:1px solid var(--c-border);border-radius:var(--r-sm);padding:12px 14px;font:inherit;color:var(--c-text);background:var(--c-surface);width:100%;transition:border-color .2s ease,box-shadow .2s ease}
+.field::placeholder{color:var(--c-muted);opacity:.7}
+.field:focus{outline:none;border-color:var(--c-accent);box-shadow:var(--c-focus)}
+
+/* Cabecera y pie */
+.site-header{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:var(--sp-6);padding:var(--sp-3) var(--sp-5);
+  background:var(--c-glass);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid var(--c-glass-edge)}
+.site-footer{padding-block:var(--sp-6)}
+
+@media (prefers-reduced-motion:reduce){*{transition-property:opacity,background-color,color!important;transition-duration:.15s!important;animation:none!important}.btn:active{transform:none}}
+@media (prefers-reduced-transparency:reduce){.site-header{background:var(--c-page);-webkit-backdrop-filter:none;backdrop-filter:none}}
+@media (prefers-contrast:more){.field,.btn-ghost,.panel,.step,.project,.tab{border-width:1.5px;border-color:var(--c-text)}.site-header{background:var(--c-page);-webkit-backdrop-filter:none;backdrop-filter:none}}

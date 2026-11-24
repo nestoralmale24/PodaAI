@@ -41,7 +41,9 @@
   strip.innerHTML = PHASES.map(p => `<li>${p}</li>`).join('');
   const lines = $$('#code .ln');
   const dead = lines.filter(l => l.dataset.dead);
-  dead.forEach(l => { l.dataset.badge = l.dataset.dead === 'remove' ? 'remove · high' : 'review'; });
+  const badges = () => dead.forEach(l => { l.dataset.badge = window.PodaI18n.t(l.dataset.dead === 'remove' ? 'remove · high' : 'review'); });
+  badges();
+  document.addEventListener('sitelang', badges);
   const count = (el, to) => { el.textContent = String(to); };
   let runId = 0, playing = false;
 

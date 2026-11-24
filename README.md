@@ -1,194 +1,200 @@
 <p align="center"><img src="poda/dashboard/assets/poda-logo.png" alt="Poda AI" width="160"></p>
 
-# Poda AI — tu código legacy, sin peso muerto, listo para migrar
+<p align="center"><b>English</b> · <a href="README.es.md">Español</a> · <a href="https://nestoralmale24.github.io/PodaAI/">Website &amp; demo</a></p>
 
-**Poda AI** poda el código muerto de una aplicación legacy antes de documentarla o migrarla. Recibe la aplicación y devuelve:
+# Poda AI — your legacy code, without the dead weight, ready to migrate
 
-- una **copia limpia**, sin lo que sobra;
-- un **informe** de lo que ha quitado y por qué;
-- las **métricas** de la ejecución: tokens, coste, tiempo y líneas eliminadas.
+**Poda AI** prunes the dead code from a legacy application before you document or migrate it. You give it the application and it returns:
 
-El original no se toca nunca. Todo se maneja desde un **dashboard web**: configuras el proveedor de IA, eliges la aplicación y ves en directo qué lee, qué decide y qué elimina.
+- a **clean copy**, without what is not needed;
+- a **report** of what it removed and why;
+- the run's **metrics**: tokens, cost, time and lines removed.
 
-Trabaja en tres pasos:
+The original is never modified. Everything is driven from a **web dashboard**: set up the AI provider, pick the application and watch live what it reads, decides and removes.
 
-1. **SonarQube**, siempre primero: analiza la aplicación y resume las incidencias de código sin uso.
-2. **Análisis propio de Poda AI**: añade lo que SonarQube no ve, como ficheros y directorios que nada alcanza, librerías y dependencias sin uso, o basura y restos de compilación.
-3. **La IA** (LiteLLM o GitHub Copilot) valida con sus prompts **todos** los hallazgos. Primero hace un triaje con la evidencia reunida y, si no basta, un agente busca en el código con herramientas de solo lectura. Además, busca lo que ninguno de los dos análisis ve.
+It works in three steps:
 
-**Nada se elimina sin la IA**: ni siquiera lo que SonarQube o el análisis propio consideran seguro. La IA nunca edita código: devuelve veredictos, y Poda AI aplica las eliminaciones de forma determinista, byte a byte. Si un fichero deja de ser válido, se revierte.
+1. **SonarQube**, always first: analyses the application and summarises its unused-code issues.
+2. **Poda AI's own static analysis**: adds what SonarQube cannot see, such as files and directories that nothing reaches, unused libraries and dependencies, or junk and build leftovers.
+3. **The AI** (LiteLLM, GitHub Copilot or your Claude account) validates **every** finding with its prompts. It first triages with the evidence collected and, if that is not enough, an agent searches the code with read-only tools. It also looks for what neither analysis can see.
 
-## Puesta en marcha
+**Nothing is removed without the AI**: not even what SonarQube or the static analysis consider safe. The AI never edits code: it returns verdicts, and Poda AI applies the deletions deterministically, byte for byte. If a file stops being valid, it is reverted.
 
-1. Copia la carpeta de cada aplicación legacy dentro de `target/`. Ahí está el original, que no se toca; el resultado de cada limpieza queda aparte, en `output/<aplicación>` (ver «Salida»).
-2. Levanta los contenedores (Poda AI, su SonarQube y la base de datos de este):
+## Quick start
+
+1. Copy each legacy application's folder into `target/`. That is where the original lives and it is never touched; the result of each cleanup goes elsewhere, in `output/<application>` (see [Output](#output)).
+2. Start the containers (Poda AI, its own SonarQube and that one's database):
 
    ```sh
    docker compose up -d --build
    ```
 
-   SonarQube tarda entre 1 y 3 minutos en arrancar la primera vez y necesita unos 2 GB de memoria en Docker.
+   SonarQube takes 1 to 3 minutes to start the first time and needs about 2 GB of memory in Docker.
 
-3. Arranca el dashboard:
+3. Start the dashboard:
 
    ```sh
    docker exec -it poda-cli poda dashboard
    ```
 
-   Abre `http://127.0.0.1:8770/` en el navegador. `Ctrl+C` cierra el dashboard. Para visualizar el dashboard de sonar abre en `http://127.0.0.1:9001`, con el usuario admin y la contraseña guardada en `poda-settings/providers.json`.
+   It prints the address of the dashboard (`http://127.0.0.1:8770/`) and of SonarQube (`http://127.0.0.1:9001`). Open the dashboard in your browser; `Ctrl+C` closes it. To browse SonarQube's own UI, sign in as `admin` with the password stored in `.poda-settings/providers.json`.
 
+4. To stop everything: `docker compose down`. SonarQube's data is kept in its volumes.
 
-4. Para pararlo todo: `docker compose down`. Los datos de SonarQube se conservan en sus volúmenes.
+You do not need a `.env` file: everything is configured in the dashboard. The optional settings (for example `TARGET_DIR` or `OUTPUT_DIR` if your applications or results live in another folder) are explained in `.env.sample`. SonarQube needs no configuration either: Poda AI sets it up by itself the first time (see [SonarQube](#sonarqube)).
 
-No hace falta `.env`: todo se configura en el dashboard. Los ajustes opcionales (por ejemplo, `TARGET_DIR` u `OUTPUT_DIR` si las aplicaciones o los resultados están en otra carpeta) están explicados en `.env.sample`. SonarQube tampoco hay que configurarlo: Poda AI lo prepara solo la primera vez (ver «SonarQube», más abajo).
+## The dashboard
 
-## El dashboard
+The page is organised in tabs, one per step, and each one unlocks when the previous is complete. It has light and dark modes and can be used in English (the default) or Spanish with the flags at the top right; both choices are remembered in the browser.
 
-La página va por pestañas, una por paso, y cada una se desbloquea al completar la anterior. Tiene modo claro y oscuro (botón arriba a la derecha; se recuerda en el navegador).
+1. **AI providers** (at least one is required):
+   - *LiteLLM gateway*: needs the gateway **URL** and the **API key**.
+   - *GitHub Copilot*: "Connect with GitHub" (one-time code) or paste an OAuth token.
+   - *Claude*: your Pro/Max plan through the official `claude` CLI. Poda AI keeps its own session (independent of your computer's): "Sign in with Claude", authorise on the Claude website and paste the code. It only verifies snippets (the CLI has no tools) and counts against your plan's usage limit.
+   - Each provider can be refreshed (model list), changed or removed, except while a cleanup is running: then only the model can be changed, and it applies to the next one. Removing a provider is permanent: the saved key or session is deleted, the key in `.env` stops being used, the Copilot proxy is stopped and, if the chosen model belonged to that provider, it is removed too.
+2. **AI model**: provider and main model, plus an optional, cheaper triage model. The page shows what will be used.
+3. **Clean an application**:
+   - lists the folders in `target/` and lets you **pick one** (if there is only one, it is already picked);
+   - if the application was cleaned before, you choose between reusing the AI's answers (faster, and you do not pay for them again) or starting from scratch;
+   - a card shows SonarQube's state: ready, starting or failed;
+   - "Start cleanup" is only enabled with a provider, a model and SonarQube ready.
 
-1. **Proveedores de IA** (obligatorio al menos uno):
-   - *LiteLLM gateway*: necesita la **URL** del gateway y la **API key**.
-   - *GitHub Copilot*: «Conectar con GitHub» (código de un solo uso) o pegar un token OAuth.
-   - Cada proveedor se puede actualizar (lista de modelos), cambiar o quitar, salvo mientras hay una limpieza en marcha: entonces solo se puede cambiar el modelo, que se aplica a la siguiente. Quitar un proveedor es definitivo: se borran la clave o la sesión guardadas, se deja de usar la clave de `.env`, se detiene el proxy de Copilot y, si el modelo elegido era de ese proveedor, también se quita.
-2. **Modelo de IA**: proveedor y modelo principal, y un modelo de triaje opcional, más barato. La página muestra qué se usará.
-3. **Limpiar una aplicación**:
-   - lista las carpetas de `target/` y te deja **elegir una** (si solo hay una, ya está elegida);
-   - si la aplicación ya se limpió antes, eliges entre reutilizar las respuestas de la IA (más rápido y sin volver a pagarlas) o empezar de cero;
-   - una tarjeta muestra el estado de SonarQube: listo, arrancando o con error;
-   - «Iniciar limpieza» solo se activa con un proveedor, un modelo y SonarQube listo.
+### What every cleanup does
 
-### Qué hace siempre la limpieza
-- **Descubrimiento con IA**, siempre. Además de validar lo que encuentran SonarQube y Poda AI, un agente busca lo que ningún análisis ve:
-  - funcionalidades desactivadas para siempre: un *flag* o un parámetro de configuración que siempre vale «apagado»;
-  - configuración muerta: mappings, *beans* o rutas que apuntan a clases o páginas que ya no existen;
-  - métodos públicos sin uso que el análisis no marcó porque su nombre es muy común;
-  - restos: páginas de pruebas o versiones antiguas (`LoginOld`, `*_bak`) a las que nada llega.
+- **AI discovery**, always. Besides validating what SonarQube and Poda AI find, an agent looks for what no analysis sees:
+  - features switched off forever: a flag or configuration parameter that is always "off";
+  - dead configuration: mappings, beans or routes that point to classes or pages that no longer exist;
+  - unused public methods that the analysis did not flag because their name is very common;
+  - leftovers: test pages or old versions (`LoginOld`, `*_bak`) that nothing reaches.
 
-  Cada hallazgo llega con las líneas exactas, y Poda AI comprueba que coinciden con el fichero antes de borrar nada.
-- **Siempre se escribe la copia limpia.** El original no se toca nunca.
-- **Solo se elimina lo que la IA confirma con confianza alta**: buscó por todos los caminos posibles y no encontró ningún uso. Lo de confianza media (queda una vía indirecta que no pudo descartar, como reflexión o una URL llamada desde otro sistema) o baja queda en el informe para revisión manual.
+  Each finding comes with the exact lines, and Poda AI checks that they match the file before deleting anything.
+- **The clean copy is always written.** The original is never touched.
+- **Only what the AI confirms with high confidence is removed**: it searched every possible way and found no use. Medium confidence (an indirect path remains that it could not rule out, such as reflection or a URL called from another system) or low confidence stays in the report for manual review.
 
-**En directo** se ven:
+**Live**, you can see:
 
-- las ocho fases, con su progreso, empezando por el análisis y el resumen de SonarQube;
-- lo que hace la IA en cada momento: qué busca, qué fichero lee, qué veredictos da;
-- cada fichero eliminado y cada bloque de líneas quitado;
-- los contadores: hallazgos, veredictos, ficheros, líneas, tokens, coste y tiempo.
+- the eight phases with their progress, starting with SonarQube's analysis and summary;
+- what the AI is doing at each moment: what it searches, which file it reads, which verdicts it gives;
+- every file removed and every block of lines taken out;
+- the counters: findings, verdicts, files, lines, tokens, cost and time.
 
-«Detener» para la limpieza en cuanto acaba la llamada a la IA en curso. Si se detiene antes de la fase de aplicación, no se escribe la copia limpia; si ya estaba aplicando, termina de aplicar pero no escribe los informes. Las respuestas de la IA ya recibidas quedan guardadas para reutilizarlas. Al acabar una limpieza aparecen el informe, las métricas y el coste, y el registro completo.
+"Stop" halts the cleanup as soon as the AI call in progress finishes. If it is stopped before the apply phase, the clean copy is not written; if it was already applying, it finishes applying but does not write the reports. The AI answers already received are kept so they can be reused. When a cleanup ends, the report, the metrics and cost, and the full log appear.
 
-Las credenciales quedan en `.poda-settings/` y la sesión de Copilot en `.copilot/`, ambas fuera de git. Nunca se envían al navegador. La página solo es accesible desde el propio equipo (`127.0.0.1`); cada arranque crea una sesión nueva que el navegador guarda en una cookie protegida, sin nada secreto en la dirección.
+Credentials are stored in `.poda-settings/` and the Copilot session in `.copilot/`, both outside git. They are never sent to the browser. The page is only reachable from the machine itself (`127.0.0.1`); every start creates a new session that the browser keeps in a protected cookie, with nothing secret in the address.
 
-## Proceso
+## The process
 
-Al pulsar «Iniciar limpieza», Poda AI recorre ocho fases, siempre en este orden. En el dashboard se ve cada una en directo.
+When you press "Start cleanup", Poda AI goes through eight phases, always in this order. The dashboard shows each one live.
 
-1. **Inventario.** Recorre la aplicación de `target/`, clasifica cada fichero (código, páginas, configuración, build, documentación…), detecta su codificación y cuenta las líneas de código. Deja fuera las salidas de compilación.
-2. **SonarQube.** Analiza la aplicación entera solo con reglas de código sin uso y resume lo que encuentra por regla. Sus incidencias quedan guardadas en SonarQube y pasan a la IA como hallazgos. Si SonarQube no puede analizarla, la limpieza se detiene.
-3. **Análisis estático de Poda AI.** Añade lo que SonarQube no ve: basura y restos de compilación, ficheros y directorios que nada alcanza, librerías y dependencias sin uso, métodos públicos sin uso, código inalcanzable y código comentado. Si coincide con SonarQube, junta los dos en un solo hallazgo. Todavía no elimina nada.
-4. **Contexto (IA).** Un agente estudia cómo arranca y se conecta la aplicación (descriptores, configuración, frameworks) y qué no se debe borrar nunca. Usa también el resumen de SonarQube.
-5. **Verificación (IA).** La IA valida uno a uno todos los hallazgos de SonarQube y del análisis propio, sin límite de cantidad: primero ficheros, librerías y dependencias; después, métodos, imports, comentarios y basura de lo que sigue en pie. Cada hallazgo pasa por un triaje con su evidencia y, si no basta, por un agente que busca en el código con herramientas de solo lectura. El veredicto es eliminar, conservar o dejar para revisión, con su confianza y su motivo. Las variables locales, asignaciones y parámetros sin uso que marca SonarQube solo se informan.
-6. **Descubrimiento (IA).** Un agente busca lo que ningún análisis ve, como funcionalidades desactivadas para siempre, configuración que apunta a clases que ya no existen o páginas de pruebas, y lo devuelve con las líneas exactas.
-7. **Aplicación.** Sobre una copia en `output/<aplicación>`, elimina solo lo que la IA confirma con confianza alta y el contexto no protege. Cada fichero editado se valida y, si queda peor, se revierte.
-8. **Informes.** Escribe el informe, las métricas (tokens, coste, tiempo y líneas antes y después), todos los hallazgos con su veredicto y el registro de la ejecución.
+1. **Inventory.** Walks the application in `target/`, classifies every file (code, pages, configuration, build, documentation…), detects its encoding and counts the lines of code. Build outputs are left out.
+2. **SonarQube.** Analyses the whole application with only the unused-code rules and summarises what it finds per rule. Its issues are stored in SonarQube and passed to the AI as findings. If SonarQube cannot analyse it, the cleanup stops.
+3. **Poda AI static analysis.** Adds what SonarQube cannot see: junk and build leftovers, files and directories that nothing reaches, unused libraries and dependencies, unused public methods, unreachable code and commented-out code. When it matches SonarQube it merges both into a single finding. It does not remove anything yet.
+4. **Context (AI).** An agent studies how the application starts and connects (descriptors, configuration, frameworks) and what must never be deleted. It also uses SonarQube's summary.
+5. **Verification (AI).** The AI validates every SonarQube and static-analysis finding one by one, with no limit: first files, libraries and dependencies; then methods, imports, comments and junk in what is still standing. Each finding goes through a triage with its evidence and, if that is not enough, through an agent that searches the code with read-only tools. The verdict is remove, keep or review, with its confidence and its reason. Unused local variables, assignments and parameters flagged by SonarQube are only reported.
+6. **Discovery (AI).** An agent looks for what no analysis sees, such as features switched off forever, configuration pointing to classes that no longer exist or test pages, and returns it with the exact lines.
+7. **Apply.** On a copy in `output/<application>`, removes only what the AI confirms with high confidence and the context does not protect. Every edited file is validated and, if it ends up worse, reverted.
+8. **Reports.** Writes the report, the metrics (tokens, cost, time and lines before and after), every finding with its verdict and the run log.
 
 ## SonarQube
-- **No se comparte con nada**: tiene su propia base de datos PostgreSQL, y sus contenedores, red y volúmenes llevan el prefijo `poda`. Aunque en el equipo haya otro SonarQube (por ejemplo, el de una herramienta de seguridad), no se tocan: el de Poda AI publica su interfaz en el puerto **9001**.
-- **Versión fija** (`26.11.0.134175`): las versiones nuevas pueden cambiar las reglas que traen por defecto, así que solo se cambia a propósito, comprobando antes que sigue detectando el código muerto.
-- **Configuración automática**: la primera vez que está listo, Poda AI cambia la contraseña inicial de `admin` por una aleatoria y crea el token de análisis. Ambos se guardan en `.poda-settings/providers.json` (fuera de git) y nunca se envían al navegador.
-- **Qué aporta**: sus reglas de código sin uso (las que tienen la etiqueta `unused`): código comentado, imports, miembros y variables privados, asignaciones que no se usan y código inalcanzable. Lo que detecta pasa a la IA como un hallazgo más, con el mensaje de la regla como evidencia.
-- **Solo código muerto**: Poda AI crea en SonarQube el perfil de reglas «Poda AI (código sin uso)», solo con las reglas `unused` de cada lenguaje, y analiza sus proyectos con él. Nada de vulnerabilidades ni de estilo.
-- **Se analiza la aplicación entera**: si la aplicación trae su propio `sonar-project.properties` (con exclusiones o carpetas limitadas), se ignora.
-- **Sin límite de incidencias**: SonarQube no devuelve más de 10.000 resultados por consulta; si hay más, Poda AI los descarga por lotes de ficheros.
-- **Ver las incidencias**: en <http://127.0.0.1:9001>, con el usuario `admin` y la contraseña guardada en `.poda-settings/providers.json`.
-- **Si la contraseña de `admin` ya no es la inicial** (por ejemplo, porque la cambiaste a mano), Poda AI no puede prepararlo solo. Crea un token en SonarQube (*My Account → Security*) y ponlo en `SONAR_TOKEN` en `.env`.
 
-## Salida
+- **Shared with nothing**: it has its own PostgreSQL database, and its containers, network and volumes carry the `poda` prefix. Even if the machine runs another SonarQube (for example a security tool's), they are not touched: Poda AI's publishes its UI on port **9001**.
+- **Pinned version** (`26.11.0.134175`): newer versions can change the rules they ship with, so it is only changed on purpose, after checking that it still detects dead code.
+- **Automatic setup**: the first time it is ready, Poda AI replaces the initial `admin` password with a random one and creates the analysis token. Both are stored in `.poda-settings/providers.json` (outside git) and never sent to the browser.
+- **What it contributes**: its unused-code rules (the ones tagged `unused`): commented-out code, imports, private members and variables, unused assignments and unreachable code. What it detects reaches the AI as one more finding, with the rule's message as evidence.
+- **Dead code only**: Poda AI creates the "Poda AI (unused code)" rule profile in SonarQube, with only the `unused` rules of each language, and analyses its projects with it. No vulnerabilities, no style.
+- **The whole application is analysed**: if the application ships its own `sonar-project.properties` (with exclusions or limited folders), it is ignored.
+- **No issue limit**: SonarQube returns at most 10,000 results per query; if there are more, Poda AI downloads them in batches of files.
+- **Browsing the issues**: at <http://127.0.0.1:9001>, signing in as `admin` with the password stored in `.poda-settings/providers.json`.
+- **If the `admin` password is no longer the initial one** (for example because you changed it by hand), Poda AI cannot set it up on its own. Create a token in SonarQube (*My Account → Security*) and put it in `SONAR_TOKEN` in `.env`.
 
-Cada limpieza deja su resultado en `output/`, separado de los originales de `target/`. Por ejemplo, para `target/<app>`:
+## Output
+
+Every cleanup leaves its result in `output/`, apart from the originals in `target/`. For example, for `target/<app>`:
 
 ```
 output/<app>/
-├── <app>/                    copia limpia
-├── poda_report.md            qué se ha eliminado, por qué y qué queda para revisar
-├── execution_metrics.json    tokens, coste, tiempo por fase, llamadas y LOC antes y después
-├── execution_metrics.md      lo mismo, en formato legible
-├── findings.json             todos los hallazgos, con evidencia, veredicto y estado
-├── run.log                   registro completo de la ejecución
-└── .poda/                    caché de respuestas de la IA (para reutilizarlas)
+├── <app>/                    clean copy
+├── poda_report.md            what was removed, why, and what is left to review
+├── execution_metrics.json    tokens, cost, time per phase, calls and LOC before and after
+├── execution_metrics.md      the same, in a readable format
+├── findings.json             every finding, with evidence, verdict and status
+├── run.log                   full run log
+└── .poda/                    AI answer cache (to reuse them)
 ```
 
-### Cómo se cuentan las líneas de código
+### How lines of code are counted
 
-Las «líneas de código» de Poda AI son las de código fuente, páginas, scripts, configuración y build, **sin comentarios, líneas en blanco, documentación ni metadatos del IDE**. Es lo que mide cuánto código real se ha quitado.
+Poda AI's "lines of code" are those of source code, pages, scripts, configuration and build files, **without comments, blank lines, documentation or IDE metadata**. It is what measures how much real code was removed.
 
-Lo que no cuenta se indica aparte, en el inventario y en `execution_metrics.md`, y Poda AI no lo toca:
+What is not counted is reported separately, in the inventory and in `execution_metrics.md`, and Poda AI does not touch it:
 
-- documentación (`.md`, `.txt`, `.adoc`…);
-- otros ficheros de texto, como los metadatos de Eclipse en `.settings/`.
+- documentation (`.md`, `.txt`, `.adoc`…);
+- other text files, such as Eclipse metadata in `.settings/`.
 
-Por eso la cifra puede ser menor que la de herramientas como cloc, que cuentan el Markdown como código. En los lenguajes que cuentan los dos (Java, XML, `pom.xml`…), las cifras coinciden. Dos detalles menores:
+That is why the figure can be lower than that of tools such as cloc, which count Markdown as code. For the languages both count (Java, XML, `pom.xml`…), the figures match. Two minor details:
 
-- un fichero que aparece dos veces con el mismo contenido cuenta dos veces, porque los dos se migrarían; cloc cuenta solo uno;
-- la línea `#!/bin/sh` de un script cuenta como comentario.
+- a file that appears twice with the same content counts twice, because both would be migrated; cloc counts only one;
+- the `#!/bin/sh` line of a script counts as a comment.
 
-## Qué elimina
+## What it removes
 
-Todo lo de esta tabla lo **valida la IA** antes de eliminarlo; la columna indica quién lo detecta.
+Everything in this table is **validated by the AI** before being removed; the last column says who detects it.
 
-| Categoría | Ejemplos | Quién lo detecta |
+| Category | Examples | Detected by |
 |---|---|---|
-| Código comentado | bloques `//`, `/* */`, `<!-- -->`, `'`, `REM` o `*` de COBOL que contienen código | SonarQube y Poda AI |
-| Imports sin uso | Java y Python | SonarQube y Poda AI |
-| Métodos, funciones y campos sin uso | privados sin uso en su fichero; públicos sin uso en todo el proyecto | SonarQube (privados) y Poda AI (privados y públicos) |
-| Código inalcanzable | `if (false)`, `if (DEBUG)` con `DEBUG` constante y falsa, sentencias tras `return` o `throw` | SonarQube y Poda AI (tree-sitter) |
-| Basura y artefactos de compilación | core dumps, `Thumbs.db`, `*.bak`, logs, `target/` de Maven, `.class` junto a su `.java` | Poda AI |
-| Ficheros y directorios sin uso | clases, JSP, JS, CSS, imágenes y *vendor* que nada vivo alcanza | Poda AI |
-| Librerías sin uso | `.jar` que no usan ni el código ni otras librerías | Poda AI (bytecode) |
-| Dependencias declaradas sin uso | `pom.xml`, `build.gradle`, `package.json`, `requirements.txt`, `.vbp`, NuGet | Poda AI |
-| Lógica y configuración muertas | *flags* siempre apagados, mappings a clases inexistentes, páginas de pruebas | La IA, en el descubrimiento |
+| Commented-out code | `//`, `/* */`, `<!-- -->`, `'`, `REM` or COBOL `*` blocks containing code | SonarQube and Poda AI |
+| Unused imports | Java and Python | SonarQube and Poda AI |
+| Unused methods, functions and fields | private ones unused in their file; public ones unused in the whole project | SonarQube (private) and Poda AI (private and public) |
+| Unreachable code | `if (false)`, `if (DEBUG)` with a constant false `DEBUG`, statements after `return` or `throw` | SonarQube and Poda AI (tree-sitter) |
+| Junk and build artefacts | core dumps, `Thumbs.db`, `*.bak`, logs, Maven `target/`, `.class` next to its `.java` | Poda AI |
+| Unused files and directories | classes, JSPs, JS, CSS, images and vendor code that nothing live reaches | Poda AI |
+| Unused libraries | `.jar` files used neither by the code nor by other libraries | Poda AI (bytecode) |
+| Declared dependencies that are unused | `pom.xml`, `build.gradle`, `package.json`, `requirements.txt`, `.vbp`, NuGet | Poda AI |
+| Dead logic and configuration | flags that are always off, mappings to missing classes, test pages | The AI, in discovery |
 
-Los comentarios explicativos (cómo funciona algo o por qué está así) no se eliminan, porque son conocimiento útil para documentar. Tampoco se toca el interior de las librerías de terceros.
+Explanatory comments (how something works or why it is the way it is) are not removed, because they are useful knowledge for documentation. The inside of third-party libraries is not touched either.
 
-Los prompts están en `poda/prompts/`. Como todo pasa por la IA, también el código comentado evidente, los imports, los miembros privados y la basura, esos hallazgos sencillos van en lotes de 15 por llamada con el modelo de triaje, que es el más barato.
+The prompts live in `poda/prompts/`. Since everything goes through the AI, obvious commented-out code, imports, private members and junk also do; those simple findings go in batches of 15 per call with the triage model, which is the cheapest.
 
-## Coste
+## Cost
 
-`execution_metrics.json` registra cada llamada (fase, modelo, tokens, herramientas, latencia y coste) y los totales; `execution_metrics.md` lo resume.
+`execution_metrics.json` records every call (phase, model, tokens, tools, latency and cost) and the totals; `execution_metrics.md` summarises it.
 
-- **LiteLLM**: gasto real de la clave en el gateway, leído antes y después de la ejecución (si el gateway lo permite); si no, el coste que devuelve el gateway en cada respuesta.
-- **Copilot**: desde junio de 2026, GitHub cobra el uso de Copilot en créditos de IA (1 crédito = 0,01 $), por tokens y con la tarifa de cada modelo. Poda AI no puede leer ese consumo, así que lo **estima**: multiplica los tokens de cada llamada (entrada, entrada en caché y salida) por la tarifa que publica GitHub para el modelo. El dashboard lo muestra como «coste estimado (Copilot)», y el selector de modelos enseña la tarifa de cada uno. Es lo que la limpieza descuenta de los créditos de tu plan; no aplica a las suscripciones anuales Pro/Pro+, que siguen pagando por peticiones premium. Las tarifas están en `poda/providers/copilot_pricing.py`, con la fecha en que se copiaron, y hay que actualizarlas cuando GitHub las cambie.
+- **LiteLLM**: the key's real spend on the gateway, read before and after the run (if the gateway allows it); otherwise, the cost the gateway returns with each response.
+- **Copilot**: since June 2026, GitHub bills Copilot usage in AI credits (1 credit = $0.01), per token and at each model's rate. Poda AI cannot read that consumption, so it **estimates** it: it multiplies each call's tokens (input, cached input and output) by the rate GitHub publishes for the model. The dashboard shows it as "estimated cost (Copilot)", and the model picker shows each model's rate. It is what the cleanup deducts from your plan's credits; it does not apply to the annual Pro/Pro+ subscriptions, which keep paying per premium request. The rates are in `poda/providers/copilot_pricing.py`, with the date they were copied, and must be updated when GitHub changes them.
+- **Claude**: it uses your Pro/Max plan, so there is no per-token cost; the usage counts against the plan's limit.
 
-## Estructura
+## Structure
 
 ```
 poda/
-├── dashboard/                  servidor local, página y ejecuciones lanzadas desde ella
-├── pipeline.py                 las ocho fases
-├── sonar_setup.py              SonarQube local: estado y preparación automática
-├── config.py, llm_settings.py  proveedor y modelo (dashboard > .env)
-├── core/                       inventario, analizadores, motor LLM, agente, rewriter
+├── dashboard/                  local server, page and runs launched from it
+├── pipeline.py                 the eight phases
+├── sonar_setup.py              local SonarQube: status and automatic setup
+├── config.py, llm_settings.py  provider and model (dashboard > .env)
+├── core/                       inventory, analysers, LLM engine, agent, rewriter
 ├── prompts/                    prompts
-├── providers/                  proxy local de Copilot y sus tarifas
-├── reporting/                  informe y métricas
-└── utils/                      métricas, texto y formato
-tests/                          pruebas sin red (LLM y SonarQube simulados)
+├── providers/                  local Copilot proxy and its rates, Claude CLI transport
+├── reporting/                  report and metrics
+└── utils/                      metrics, text and formatting
+site/                           GitHub Pages website and animated demo
+tests/                          network-free tests (simulated LLM and SonarQube)
 ```
 
-Cómo está hecho por dentro: [guía de desarrollo](docs/DESARROLLO.md).
+How it is built inside: [development guide](docs/DESARROLLO.md) (in Spanish).
 
-## Pruebas
+## Tests
 
 ```sh
 docker exec -it poda-cli python -m unittest discover -s tests -v
 ```
 
-## Limitaciones
+## Limitations
 
-- **Alcanzabilidad por nombre**: es insensible a mayúsculas, así que un nombre muy común puede hacer que algo muerto parezca vivo. Es conservadora a propósito; una segunda pasada tras limpiar suele encontrar más.
-- **Lenguajes con miembros**: el análisis estático detecta miembros en Java, C#, JavaScript, TypeScript y Python (con tree-sitter) y en Visual Basic (con expresiones regulares). En COBOL, Delphi y otros lenguajes, solo los busca la IA en la fase de descubrimiento.
-- **Usos externos**: lo que llega desde fuera del repositorio (otros sistemas que llaman a una URL, JCL o transacciones definidas fuera) no se puede ver. Esos casos van con confianza baja, y la IA decide con el contexto del proyecto.
+- **Reachability by name**: it is case-insensitive, so a very common name can make something dead look alive. It is conservative on purpose; a second pass after cleaning usually finds more.
+- **Languages with members**: the static analysis detects members in Java, C#, JavaScript, TypeScript and Python (with tree-sitter) and in Visual Basic (with regular expressions). In COBOL, Delphi and other languages, only the AI looks for them, in the discovery phase.
+- **External uses**: whatever arrives from outside the repository (other systems calling a URL, JCL or transactions defined elsewhere) cannot be seen. Those cases get low confidence, and the AI decides with the project's context.
 
-## Licencia
+## License
 
-[MIT](LICENSE) © 2026 nalmale. Creado y mantenido por [@nestoralmale24](https://github.com/nestoralmale24).
+[MIT](LICENSE) © 2026 nalmale. Created and maintained by [@nestoralmale24](https://github.com/nestoralmale24).
